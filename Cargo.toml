@@ -1,5 +1,5 @@
 [package]
-name = "entity_code_gen"
+name = "entity_store_code_gen"
 version = "0.1.0"
 authors = ["Stephen Sherratt <sfsherratt@gmail.com>"]
 
@@ -8,3 +8,5 @@ toml = "0.4"
 serde = "1.0"
 serde_derive = "1.0"
 itertools = "0.7"
+tera = "0.10"
+rustfmt = "0.9"

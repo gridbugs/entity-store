@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 use toml;
-use result::{Result, Error};
+use result::GenResult as Result;
 
 fn ret_none<T>() -> Option<T> { None }
+fn ret_64() -> usize { 64 }
 
 #[derive(Debug, Deserialize)]
 pub struct Spec {
@@ -12,6 +13,8 @@ pub struct Spec {
     pub spatial_hash: BTreeMap<String, SpatialHashField>,
     #[serde(default = "ret_none")]
     pub spatial_hash_key: Option<String>,
+    #[serde(default = "ret_64")]
+    pub id_width: usize,
 }
 
 #[derive(Debug, Deserialize)]
@@ -33,6 +36,6 @@ pub struct SpatialHashField {
 
 impl Spec {
     pub fn from_str(s: &str) -> Result<Self> {
-        toml::from_str(s).map_err(Error::ParseError)
+        Ok(toml::from_str(s)?)
     }
 }

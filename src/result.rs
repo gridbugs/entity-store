@@ -1,15 +1,43 @@
+use std::env;
 use std::result;
+use std::path::PathBuf;
+use std::io;
 use toml;
+use tera;
 
 #[derive(Debug)]
-pub enum Error {
-    FailedToFormStringFromInputBytes,
+pub enum GenError {
     ParseError(toml::de::Error),
     SpecError,
     InvalidStorageType(Vec<String>),
     InvalidAggregateType(Vec<String>),
     NoSuchComponent(String),
     MissingSpatialHashKey,
+    TemplateError(tera::Error),
+    InvalidIdWidth(Vec<usize>),
+    Utf8ConversionError,
+    RustFmtError,
 }
 
-pub type Result<T> = result::Result<T, Error>;
+pub type GenResult<T> = result::Result<T, GenError>;
+
+impl From<tera::Error> for GenError {
+    fn from(e: tera::Error) -> Self {
+        GenError::TemplateError(e)
+    }
+}
+
+impl From<toml::de::Error> for GenError {
+    fn from(e: toml::de::Error) -> Self {
+        GenError::ParseError(e)
+    }
+}
+
+#[derive(Debug)]
+pub enum SaveError {
+    VarError(env::VarError, &'static str),
+    FailedToCreateFile(PathBuf, io::Error),
+    FailedToWriteFile(PathBuf, io::Error),
+}
+
+pub type SaveResult<T> = result::Result<T, SaveError>;
