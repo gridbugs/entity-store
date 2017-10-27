@@ -4,7 +4,6 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate tera;
-extern crate rustfmt;
 
 mod storage_type;
 mod aggregate_type;
@@ -16,8 +15,7 @@ mod renderer;
 mod code_gen;
 
 use std::env;
-use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::fs::File;
 use std::io::Write;
 
@@ -25,15 +23,32 @@ use result::{GenResult, SaveResult, SaveError};
 use code_gen::CodeGen;
 
 pub struct GeneratedCode {
-    files: BTreeMap<PathBuf, String>,
+    text: String,
 }
+
+fn combine_modules(m: &Vec<(String, String)>) -> String {
+    let module_text = m.iter().map(|&(ref name, ref contents)| {
+        if name == "mod" {
+            contents.clone()
+        } else {
+            let indented = itertools::join(
+                contents.split("\n").map(|s| format!("    {}", s)), "\n");
+            format!("mod {} {{\n{}\n}}", name, indented)
+        }
+    });
+    itertools::join(module_text, "\n\n")
+}
+
+
 
 impl GeneratedCode {
     pub fn generate(s: &str) -> GenResult<Self> {
         let code_gen = CodeGen::new(s)?;
+        let modules = code_gen.render()?;
+        let text = combine_modules(&modules);
 
         Ok(Self {
-            files: code_gen.render()?,
+            text,
         })
     }
 
@@ -41,13 +56,11 @@ impl GeneratedCode {
         let out_dir = env::var("OUT_DIR")
             .map_err(|e| SaveError::VarError(e, "This method must be called from a build script."))?;
 
-        for (filename, contents) in self.files.iter() {
-            let dest_path = Path::new(&out_dir).join(filename);
-            let mut file = File::create(&dest_path)
-                .map_err(|e| SaveError::FailedToCreateFile(dest_path.clone(), e))?;
-            file.write_all(contents.as_bytes())
-                .map_err(|e| SaveError::FailedToWriteFile(dest_path.clone(), e))?;
-        }
+        let dest_path = Path::new(&out_dir).join("mod.rs");
+        let mut file = File::create(&dest_path)
+            .map_err(|e| SaveError::FailedToCreateFile(dest_path.clone(), e))?;
+        file.write_all(self.text.as_bytes())
+            .map_err(|e| SaveError::FailedToWriteFile(dest_path.clone(), e))?;
 
         Ok(())
     }

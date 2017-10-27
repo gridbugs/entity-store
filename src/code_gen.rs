@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-use std::path::PathBuf;
 use result::GenResult as Result;
 use spec::Spec;
 use output;
@@ -23,7 +21,7 @@ impl CodeGen {
         })
     }
 
-    pub fn render(&self) -> Result<BTreeMap<PathBuf, String>> {
+    pub fn render(&self) -> Result<Vec<(String, String)>> {
         self.renderer.render(&self.spec)
     }
 }
