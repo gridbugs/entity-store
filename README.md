@@ -1,1 +1,1 @@
-# entity\_store\_code\_gen
+# entity-store-code-gen
