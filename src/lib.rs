@@ -1,8 +1,7 @@
-extern crate itertools;
+#[macro_use] extern crate itertools;
 extern crate toml;
 extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde_derive;
 extern crate tera;
 
 mod storage_type;

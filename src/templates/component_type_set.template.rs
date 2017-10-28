@@ -2,7 +2,7 @@ use enum_primitive::FromPrimitive;
 use super::{constants, ComponentType};
 
 const BITMAP_BITS: usize = 64;
-const NUM_BITMAPS: usize = constants::NUM_COMPONENT_TYPES / BITMAP_BITS;
+const NUM_BITMAPS: usize = 1 + (constants::NUM_COMPONENT_TYPES - 1) / BITMAP_BITS;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct ComponentTypeSet {

@@ -22,6 +22,7 @@ impl Renderer {
             ("component_type_set",      include_str!("templates/component_type_set.template.rs")),
             ("constants",               include_str!("templates/constants.template.rs")),
             ("entity_component_table",  include_str!("templates/entity_component_table.template.rs")),
+            ("spatial_hash",            include_str!("templates/spatial_hash.template.rs")),
         ];
 
         let module_names = templates.iter().map(|&(n, _)| n).collect();

@@ -5,3 +5,6 @@ pub use self::entity_store::*;
 pub use self::entity_change::*;
 pub use self::component_type_set::*;
 pub use self::entity_component_table::*;
+{% if spatial_hash %}
+pub use self::spatial_hash::*;
+{% endif %}

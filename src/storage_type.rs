@@ -30,4 +30,20 @@ impl StorageType {
             BTree => "btree",
         }
     }
+
+    pub fn to_map_type(self) -> &'static str {
+        match self {
+            Vector => "EntityVecMap",
+            Hash => "EntityHashMap",
+            BTree => "EntityBTreeMap",
+        }
+    }
+
+    pub fn to_set_type(self) -> &'static str {
+        match self {
+            Vector => "EntityVecSet",
+            Hash => "EntityHashSet",
+            BTree => "EntityBTreeSet",
+        }
+    }
 }

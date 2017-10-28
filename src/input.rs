@@ -32,6 +32,8 @@ pub struct SpatialHashField {
     pub component: String,
     #[serde(default = "ret_none")]
     pub aggregate: Option<String>,
+    #[serde(rename = "type", default = "ret_none")]
+    pub typ: Option<String>,
 }
 
 impl Spec {

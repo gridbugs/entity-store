@@ -17,6 +17,7 @@ pub enum GenError {
     InvalidIdWidth(Vec<usize>),
     Utf8ConversionError,
     RustFmtError,
+    MissingStorageType(String),
 }
 
 pub type GenResult<T> = result::Result<T, GenError>;

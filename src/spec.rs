@@ -17,6 +17,7 @@ pub struct Spec {
 pub struct Component {
     typ: Option<String>,
     name: String,
+    key: String,
     storage_type: Option<StorageType>,
 }
 
@@ -28,8 +29,9 @@ pub struct ComponentSpec {
 
 #[derive(Debug, Clone)]
 pub struct SpatialHashField {
+    typ: Option<String>,
     aggregate_type: Option<AggregateType>,
-    component_field: String,
+    component: Component,
 }
 
 #[derive(Debug, Clone)]
@@ -80,28 +82,20 @@ impl Component {
         Ok(Self {
             storage_type,
             name,
+            key: field_name.to_string(),
             typ: c.typ.clone(),
         })
     }
 
     fn to_output(&self, key: &str, index: usize) -> output::Component {
-        use self::StorageType::*;
         let storage = self.storage_type.as_ref().map(|s| {
             output::StorageInfo {
                 typ: s.to_str().to_string(),
                 rust_type: {
                     if self.typ.is_some() {
-                        match *s {
-                            Vector => "EntityVecMap",
-                            Hash => "EntityHashMap",
-                            BTree => "EntityBTreeMap",
-                        }
+                        s.to_map_type().to_string()
                     } else {
-                        match *s {
-                            Vector => "EntityVecSet",
-                            Hash => "EntityHashSet",
-                            BTree => "EntityBTreeSet",
-                        }
+                        s.to_set_type().to_string()
                     }
                 }.to_string(),
             }
@@ -112,6 +106,7 @@ impl Component {
             storage,
             key: key.to_string(),
             index,
+            contains: if self.typ.is_some() { "contains_key".to_string() } else { "contains".to_string() },
         }
     }
 }
@@ -130,14 +125,38 @@ impl SpatialHashField {
             None
         };
 
-        if !components.contains_key(&f.component) {
+        let component = if let Some(c) = components.get(&f.component) {
+            c.clone()
+        } else {
             return Err(Error::NoSuchComponent(f.component.clone()));
+        };
+
+        if let Some(a) = aggregate_type {
+            if a.requires_storage() && component.storage_type.is_none() {
+                return Err(Error::MissingStorageType(f.component.clone()));
+            }
         }
 
         Ok(Self {
             aggregate_type,
-            component_field: f.component.clone(),
+            component,
+            typ: f.typ.clone(),
         })
+    }
+
+    fn to_output(&self, key: &str, components: &BTreeMap<String, output::Component>) -> output::SpatialHashField {
+        let aggregate = self.aggregate_type.map(|a| {
+            output::AggregateInfo {
+                typ: a.to_str().to_string(),
+                rust_type: a.to_type(self.component.typ.as_ref(), self.typ.as_ref()),
+            }
+        });
+        let component = components.get(&self.component.key).unwrap().clone();
+        output::SpatialHashField {
+            key: key.to_string(),
+            aggregate,
+            component,
+        }
     }
 }
 
@@ -193,14 +212,62 @@ impl Spec {
     }
 
     pub fn to_output(&self) -> output::Spec {
-        let components = self.components.components.iter()
+        let components: BTreeMap<String, output::Component> = self.components.components.iter()
             .enumerate()
             .map(|(i, (k, v))| (k.clone(), v.to_output(k, i)) ).collect();
+
+        let spatial_hash = self.spatial_hash.as_ref().map(|sh| {
+            let fields: BTreeMap<String, output::SpatialHashField> = sh.fields.iter()
+                .map(|(k, f)| (k.clone(), f.to_output(k, &components))).collect();
+            let position_component = components.get(&sh.position_component).cloned().unwrap();
+            let mut has_neighbours = false;
+            let mut by_component = BTreeMap::new();
+            for (f, g) in izip!(fields.values(), sh.fields.values()) {
+                let current = by_component.entry(f.component.key.clone())
+                    .or_insert_with(|| output::ByComponentInfo {
+                        fields: BTreeMap::new(),
+                        lookup: None,
+                        component: f.component.clone(),
+                    });
+
+                if let Some(a) = g.aggregate_type {
+                    if let AggregateType::NeighbourCount = a {
+                        has_neighbours = true;
+                    }
+                    if let Some(l) = a.to_lookup() {
+                        current.lookup = match l {
+                            "get" => Some("get"),
+                            "contains" => {
+                                if let Some(ref l) = current.lookup {
+                                    if l.as_str() == "get" {
+                                        Some("get")
+                                    } else {
+                                        Some("contains")
+                                    }
+                                } else {
+                                    Some("contains")
+                                }
+                            }
+                            _ => unreachable!(),
+                        }.map(|s| s.to_string());
+                    }
+                }
+
+                current.fields.insert(f.key.clone(), f.clone());
+            }
+            output::SpatialHash {
+                fields,
+                by_component,
+                position_component,
+                has_neighbours,
+            }
+        });
 
         output::Spec {
             num_component_types: self.components.components.len(),
             components,
             id_type: format!("u{}", self.components.id_width),
+            spatial_hash,
         }
     }
 }
