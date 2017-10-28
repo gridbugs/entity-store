@@ -32,8 +32,14 @@ fn combine_modules(m: &Vec<(String, String)>) -> String {
             contents.clone()
         } else {
             let indented = itertools::join(
-                contents.split("\n").map(|s| format!("    {}", s)), "\n");
-            format!("mod {} {{\n{}\n}}", name, indented)
+                contents.split("\n").map(|s| {
+                    if s == "" {
+                        "".to_string()
+                    } else {
+                        format!("    {}", s)
+                    }
+                }), "\n");
+            format!("mod {} {{\n{}}}", name, indented)
         }
     });
     itertools::join(module_text, "\n\n")
