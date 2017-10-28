@@ -94,7 +94,7 @@ impl GeneratedCode {
         let out_dir = env::var("OUT_DIR")
             .map_err(|e| SaveError::VarError(e, "This method must be called from a build script."))?;
 
-        let dest_path = Path::new(&out_dir).join("mod.rs");
+        let dest_path = Path::new(&out_dir).join("entity_store_code_gen_out.rs");
         let mut file = File::create(&dest_path)
             .map_err(|e| SaveError::FailedToCreateFile(dest_path.clone(), e))?;
         file.write_all(self.text.as_bytes())

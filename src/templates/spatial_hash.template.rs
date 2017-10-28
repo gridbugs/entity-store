@@ -2,9 +2,9 @@
 #![allow(unused_variables)]
 
 use super::{EntityChange, EntityStore, EntityId, ComponentType, ComponentValue};
-use entity_store_helpers::num::One;
-use entity_store_helpers::direction::Directions;
-use entity_store_helpers::cgmath::Vector2;
+use entity_store_helper::num::One;
+use entity_store_helper::direction::Directions;
+use entity_store_helper::cgmath::Vector2;
 
 pub type UnsignedCoord = Vector2<u32>;
 pub type SignedCoord = Vector2<i32>;

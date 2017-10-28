@@ -51,7 +51,7 @@ impl AggregateType {
             Total => component_type.unwrap().clone(),
             Count => field_type.cloned().unwrap_or_else(|| "usize".to_string()),
             Set => field_type.cloned().unwrap_or_else(|| "::std::collections::HashSet<super::EntityId>".to_string()),
-            NeighbourCount => "::entity_store_helpers::NeighbourCount".to_string(),
+            NeighbourCount => "::entity_store_helper::NeighbourCount".to_string(),
         }
     }
 
