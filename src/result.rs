@@ -5,6 +5,7 @@ use std::io;
 use toml;
 use tera;
 
+/// Errors that can occur during code generation
 #[derive(Debug)]
 pub enum GenError {
     ParseError(toml::de::Error),
@@ -34,6 +35,7 @@ impl From<toml::de::Error> for GenError {
     }
 }
 
+/// Errors that can occur while creating the output file
 #[derive(Debug)]
 pub enum SaveError {
     VarError(env::VarError, &'static str),
