@@ -198,6 +198,7 @@ impl Spec {
             .map(|(i, (k, v))| (k.clone(), v.to_output(k, i)) ).collect();
 
         output::Spec {
+            num_component_types: self.components.components.len(),
             components,
             id_type: format!("u{}", self.components.id_width),
         }

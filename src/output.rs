@@ -21,4 +21,5 @@ pub struct Component {
 pub struct Spec {
     pub components: BTreeMap<String, Component>,
     pub id_type: String,
+    pub num_component_types: usize,
 }

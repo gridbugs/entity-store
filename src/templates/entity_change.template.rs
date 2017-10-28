@@ -6,6 +6,15 @@ pub enum EntityChange {
     Remove(EntityId, ComponentType),
 }
 
+impl EntityChange {
+    pub fn id(&self) -> EntityId {
+        match self {
+            &EntityChange::Insert(id, ..) => id,
+            &EntityChange::Remove(id, ..) => id,
+        }
+    }
+}
+
 pub mod insert {
     use super::{ComponentValue, EntityId, EntityChange};
     {% for key, component in components %}
