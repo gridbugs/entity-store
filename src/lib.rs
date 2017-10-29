@@ -55,7 +55,7 @@ use std::io::Write;
 pub use result::{GenResult, GenError, SaveResult, SaveError};
 use code_gen::CodeGen;
 
-struct GeneratedCode {
+pub struct GeneratedCode {
     text: String,
 }
 
@@ -80,7 +80,7 @@ fn combine_modules(m: &Vec<(String, String)>) -> String {
 
 
 impl GeneratedCode {
-    fn generate(s: &str) -> GenResult<Self> {
+    pub fn generate(s: &str) -> GenResult<Self> {
         let code_gen = CodeGen::new(s)?;
         let modules = code_gen.render()?;
         let text = combine_modules(&modules);
@@ -90,11 +90,11 @@ impl GeneratedCode {
         })
     }
 
-    fn save(&self) -> SaveResult<()> {
+    pub fn save(&self, filename: &str) -> SaveResult<()> {
         let out_dir = env::var("OUT_DIR")
             .map_err(|e| SaveError::VarError(e, "This method must be called from a build script."))?;
 
-        let dest_path = Path::new(&out_dir).join("entity_store_code_gen_out.rs");
+        let dest_path = Path::new(&out_dir).join(filename);
         let mut file = File::create(&dest_path)
             .map_err(|e| SaveError::FailedToCreateFile(dest_path.clone(), e))?;
         file.write_all(self.text.as_bytes())
@@ -113,7 +113,14 @@ pub enum Error {
 /// Generates code from a given toml spec.
 /// Results are placed in OUT_DIR.
 /// Must be called from a build script.
-pub fn generate(s: &str) -> Result<(), Error> {
-    let code = GeneratedCode::generate(s).map_err(Error::Gen)?;
-    code.save().map_err(Error::Save)
+pub fn generate(spec: &str, filename: &str) -> Result<(), Error> {
+    let code = GeneratedCode::generate(spec).map_err(Error::Gen)?;
+    code.save(filename).map_err(Error::Save)
+}
+
+#[macro_export]
+macro_rules! generate_entity_store {
+    ($spec:expr, $filename:expr) => {
+        ::entity_store_code_gen::generate(include_str!($spec), $filename).unwrap()
+    }
 }
