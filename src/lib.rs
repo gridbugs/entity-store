@@ -26,7 +26,7 @@
 //! extern crate entity_store_code_gen;
 //!
 //! fn main() {
-//!     entity_store_code_gen::generate(include_str!("spec.toml")).unwrap()
+//!     entity_store_code_gen::generate(include_str!("spec.toml"), "entity_store.rs").unwrap()
 //! }
 //! ```
 //!

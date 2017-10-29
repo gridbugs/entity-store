@@ -233,6 +233,6 @@ impl<'a> Iterator for EntityVecSetIter<'a> {
         let trailing = self.current.trailing_zeros();
         self.current &= !(1 << trailing);
 
-        Some(self.base + trailing as u16)
+        Some(self.base + trailing as EntityId)
     }
 }

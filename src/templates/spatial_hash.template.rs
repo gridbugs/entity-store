@@ -57,7 +57,7 @@ impl SpatialHashCell {
                     {% if field.aggregate.type == "total" %}
                         self.{{ field.key }} += *current;
                     {% elif field.aggregate.type == "count" %}
-                        self.{{ field.key }} += One::one();
+                        self.{{ field.key }} += {{ field.aggregate.rust_type }}::one();
                     {% elif field.aggregate.type == "set" %}
                         self.{{ field.key }}.insert(id);
                     {% endif %}
@@ -81,7 +81,7 @@ impl SpatialHashCell {
                     {% if field.aggregate.type == "total" %}
                         self.{{ field.key }} -= *current;
                     {% elif field.aggregate.type == "count" %}
-                        self.{{ field.key }} -= One::one();
+                        self.{{ field.key }} -= {{ field.aggregate.rust_type }}::one();
                     {% elif field.aggregate.type == "set" %}
                         self.{{ field.key }}.remove(&id);
                     {% endif %}
@@ -127,7 +127,7 @@ impl SpatialHashTable {
         index.index(self.width_usize).and_then(|i| self.cells.get(i))
     }
 
-    pub fn get_mut<T: SpatialHashIndex>(&mut self, index: T) -> Option<&mut SpatialHashCell> {
+    pub fn get_mut(&mut self, index: SignedCoord) -> Option<&mut SpatialHashCell> {
         if let Some(i) = index.index(self.width_usize) {
             return self.cells.get_mut(i);
         }
@@ -140,15 +140,15 @@ impl SpatialHashTable {
                 match value {
                     &ComponentValue::{{ spatial_hash.position_component.name }}(position) => {
                         if let Some(current) = entity_store.{{ spatial_hash.position_component.key }}.get(&id) {
-                            if let Some(cell) = self.get_mut(*current) {
+                            if let Some(cell) = self.get_mut(current.cast()) {
                                 cell.remove(id, entity_store, time);
                             }
-                            self.remove_neighbours(id, entity_store, time, (*current).into());
+                            self.remove_neighbours(id, entity_store, time, current.cast());
                         }
-                        if let Some(cell) = self.get_mut(position) {
+                        if let Some(cell) = self.get_mut(position.cast()) {
                             cell.insert(id, entity_store, time);
                         }
-                        self.insert_neighbours(id, entity_store, time, position.into());
+                        self.insert_neighbours(id, entity_store, time, position.cast());
                     }
                     {% for _, by_component in spatial_hash.by_component %}
                         {% if by_component.component.type %}
@@ -160,7 +160,7 @@ impl SpatialHashTable {
                                 {% for _, field in by_component.fields %}
                                     {% if field.aggregate.type == "neighbour_count" %}
                                         if !entity_store.{{ by_component.component.key }}.{{ by_component.component.contains }}(&id) {
-                                            let normalized: SignedCoord = (*position).into();
+                                            let normalized: SignedCoord = (*position).cast();
                                             for d in Directions {
                                                 if let Some(cell) = self.get_mut(normalized + d.vector()) {
                                                     cell.{{ field.key }}.inc(d.opposite());
@@ -172,7 +172,7 @@ impl SpatialHashTable {
                                 {% endfor %}
 
                                 {% if by_component.lookup %}
-                                    if let Some(cell) = self.get_mut(*position) {
+                                    if let Some(cell) = self.get_mut(position.cast()) {
                                         {% if by_component.lookup == "get" %}
                                             if let Some(current) = entity_store.{{ by_component.component.key }}.get(&id) {
                                                 {% for _, field in by_component.fields %}
@@ -190,7 +190,7 @@ impl SpatialHashTable {
                                             {% if field.aggregate.type == "total" %}
                                                 cell.{{ field.key }} += value;
                                             {% elif field.aggregate.type == "count" %}
-                                                cell.{{ field.key }} += One::one();
+                                                cell.{{ field.key }} += {{ field.aggregate.rust_type }}::one();
                                             {% elif field.aggregate.type == "set" %}
                                                 cell.{{ field.key }}.insert(id);
                                             {% endif %}
@@ -209,11 +209,11 @@ impl SpatialHashTable {
                 match typ {
                     ComponentType::{{ spatial_hash.position_component.name }} => {
                         if let Some(current) = entity_store.{{ spatial_hash.position_component.key }}.get(&id) {
-                            if let Some(cell) = self.get_mut(*current) {
+                            if let Some(cell) = self.get_mut(current.cast()) {
                                 cell.remove(id, entity_store, time);
                             }
                             {% if spatial_hash.has_neighbours %}
-                            self.remove_neighbours(id, entity_store, time, (*current).into());
+                            self.remove_neighbours(id, entity_store, time, current.cast());
                             {% endif %}
                         }
                     }
@@ -223,7 +223,7 @@ impl SpatialHashTable {
                                 {% for _, field in by_component.fields %}
                                     {% if field.aggregate.type == "neighbour_count" %}
                                         if entity_store.{{ by_component.component.key }}.{{ by_component.component.contains }}(&id) {
-                                            let normalized: SignedCoord = (*position).into();
+                                            let normalized: SignedCoord = (*position).cast();
                                             for d in Directions {
                                                 if let Some(cell) = self.get_mut(normalized + d.vector()) {
                                                     cell.{{ field.key }}.dec(d.opposite());
@@ -235,7 +235,7 @@ impl SpatialHashTable {
                                 {% endfor %}
 
                                 {% if by_component.lookup %}
-                                    if let Some(cell) = self.get_mut(*position) {
+                                    if let Some(cell) = self.get_mut(position.cast()) {
                                         {% if by_component.lookup == "get" %}
                                             if let Some(current) = entity_store.{{ by_component.component.key }}.get(&id) {
                                         {% else %}
@@ -246,7 +246,7 @@ impl SpatialHashTable {
                                             {% if field.aggregate.type == "total" %}
                                                 cell.{{ field.key }} -= *current;
                                             {% elif field.aggregate.type == "count" %}
-                                                cell.{{ field.key }} -= One::one();
+                                                cell.{{ field.key }} -= {{ field.aggregate.rust_type }}::one();
                                             {% elif field.aggregate.type == "set" %}
                                                 cell.{{ field.key }}.remove(&id);
                                             {% endif %}

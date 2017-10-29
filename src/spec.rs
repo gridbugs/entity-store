@@ -150,6 +150,11 @@ impl SpatialHashField {
                 typ: a.to_str().to_string(),
                 rust_type: a.to_type(self.component.typ.as_ref(), self.typ.as_ref()),
             }
+        }).unwrap_or_else(|| {
+            output::AggregateInfo {
+                typ: "void".to_string(),
+                rust_type: "()".to_string(),
+            }
         });
         let component = components.get(&self.component.key).unwrap().clone();
         output::SpatialHashField {
@@ -171,6 +176,10 @@ impl Spec {
                 })
             }).collect();
         let components = components?;
+
+        if components.is_empty() {
+            return Err(Error::NoComponents);
+        }
 
         let spatial_hash_fields: Result<BTreeMap<String, SpatialHashField>> =
             spec_in.spatial_hash.iter().map(|(f, shf_in)| {

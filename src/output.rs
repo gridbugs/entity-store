@@ -35,7 +35,7 @@ pub struct ByComponentInfo {
 #[derive(Debug, Clone, Serialize)]
 pub struct SpatialHashField {
     pub key: String,
-    pub aggregate: Option<AggregateInfo>,
+    pub aggregate: AggregateInfo,
     pub component: Component,
 }
 

@@ -19,6 +19,7 @@ pub enum GenError {
     Utf8ConversionError,
     RustFmtError,
     MissingStorageType(String),
+    NoComponents,
 }
 
 pub type GenResult<T> = result::Result<T, GenError>;
