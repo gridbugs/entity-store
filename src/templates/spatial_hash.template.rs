@@ -1,5 +1,7 @@
 {% if spatial_hash %}
 #![allow(unused_variables)]
+#![allow(unused_imports)]
+#![allow(dead_code)]
 
 use super::{EntityChange, EntityStore, EntityId, ComponentType, ComponentValue};
 use entity_store_helper::num::One;

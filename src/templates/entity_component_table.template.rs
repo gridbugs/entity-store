@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::{EntityVecMap, ComponentTypeSet, ComponentTypeSetIter, EntityChange, EntityId};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

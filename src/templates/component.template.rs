@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 enum_from_primitive! {
 #[derive(Debug, Clone, Copy)]
 pub enum ComponentType {

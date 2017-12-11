@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::{ComponentValue, ComponentType, EntityId};
 
 #[derive(Debug, Clone)]

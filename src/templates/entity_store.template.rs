@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 #![allow(unused_imports)]
 use std::collections::{HashMap, HashSet, BTreeMap, BTreeSet};
 use super::{EntityId, EntityVecMap, EntityVecSet, EntityChange, ComponentValue, ComponentType};
