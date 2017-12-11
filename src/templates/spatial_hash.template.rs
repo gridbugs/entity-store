@@ -145,12 +145,16 @@ impl SpatialHashTable {
                             if let Some(cell) = self.get_mut(current.cast()) {
                                 cell.remove(id, entity_store, time);
                             }
-                            self.remove_neighbours(id, entity_store, time, current.cast());
+                            {% if spatial_hash.has_neighbours %}
+                                self.remove_neighbours(id, entity_store, time, current.cast());
+                            {% endif %}
                         }
                         if let Some(cell) = self.get_mut(position.cast()) {
                             cell.insert(id, entity_store, time);
                         }
-                        self.insert_neighbours(id, entity_store, time, position.cast());
+                        {% if spatial_hash.has_neighbours %}
+                            self.insert_neighbours(id, entity_store, time, position.cast());
+                        {% endif %}
                     }
                     {% for _, by_component in spatial_hash.by_component %}
                         {% if by_component.component.type %}
