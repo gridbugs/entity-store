@@ -91,8 +91,9 @@ impl GeneratedCode {
     }
 
     pub fn save(&self, filename: &str) -> SaveResult<()> {
+        let env_error_str = "This method must be called from a build script.";
         let out_dir = env::var("OUT_DIR")
-            .map_err(|e| SaveError::VarError(e, "This method must be called from a build script."))?;
+            .map_err(|e| SaveError::VarError(e, env_error_str))?;
 
         let dest_path = Path::new(&out_dir).join(filename);
         let mut file = File::create(&dest_path)
