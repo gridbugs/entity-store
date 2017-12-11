@@ -107,6 +107,10 @@ impl GeneratedCode {
             let manifest_dir = env::var("CARGO_MANIFEST_DIR")
                 .map_err(|e| SaveError::VarError(e, env_error_str))?;
             let code_gen_symlink_path = Path::new(&manifest_dir).join(".generated.rs");
+            if code_gen_symlink_path.exists() {
+                ::std::fs::remove_file(&code_gen_symlink_path)
+                    .map_err(|e| SaveError::FailedToRemoveExistingSymlink(code_gen_symlink_path.to_path_buf(), e))?;
+            }
             ::std::os::unix::fs::symlink(&dest_path, code_gen_symlink_path)
                 .map_err(|e| SaveError::FailedToMakeSymlink(dest_path.to_path_buf(), e))?;
         }

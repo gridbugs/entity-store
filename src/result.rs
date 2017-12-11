@@ -43,6 +43,8 @@ pub enum SaveError {
     FailedToCreateFile(PathBuf, io::Error),
     FailedToWriteFile(PathBuf, io::Error),
     #[cfg(unix)]
+    FailedToRemoveExistingSymlink(PathBuf, io::Error),
+    #[cfg(unix)]
     FailedToMakeSymlink(PathBuf, io::Error),
 }
 
