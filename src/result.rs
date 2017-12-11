@@ -42,6 +42,8 @@ pub enum SaveError {
     VarError(env::VarError, &'static str),
     FailedToCreateFile(PathBuf, io::Error),
     FailedToWriteFile(PathBuf, io::Error),
+    #[cfg(unix)]
+    FailedToMakeSymlink(PathBuf, io::Error),
 }
 
 pub type SaveResult<T> = result::Result<T, SaveError>;
