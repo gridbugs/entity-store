@@ -2,6 +2,7 @@
 #![allow(unused_variables)]
 #![allow(unused_imports)]
 #![allow(dead_code)]
+#![allow(unreachable_patterns)]
 
 use super::{EntityChange, EntityStore, EntityId, ComponentType, ComponentValue};
 use entity_store_helper::num::One;
