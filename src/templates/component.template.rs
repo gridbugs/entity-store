@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 enum_from_primitive! {
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum ComponentType {
     {% for _, component in components %}
         {{ component.name }} = {{ component.index }},
@@ -9,7 +9,7 @@ pub enum ComponentType {
 }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ComponentValue {
     {% for _, component in components %}
         {% if component.type %}

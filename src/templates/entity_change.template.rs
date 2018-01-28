@@ -2,7 +2,7 @@
 
 use super::{ComponentValue, ComponentType, EntityId};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EntityChange {
     Insert(EntityId, ComponentValue),
     Remove(EntityId, ComponentType),
