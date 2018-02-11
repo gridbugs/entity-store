@@ -130,7 +130,7 @@ impl SpatialHashTable {
         index.index(self.width_usize).and_then(|i| self.cells.get(i))
     }
 
-    pub fn get_mut(&mut self, index: SignedCoord) -> Option<&mut SpatialHashCell> {
+    fn get_mut(&mut self, index: SignedCoord) -> Option<&mut SpatialHashCell> {
         if let Some(i) = index.index(self.width_usize) {
             return self.cells.get_mut(i);
         }
