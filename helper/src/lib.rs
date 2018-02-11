@@ -8,6 +8,7 @@ pub extern crate direction;
 pub extern crate cgmath;
 pub extern crate num;
 pub extern crate append;
+pub extern crate grid_2d;
 
 mod neighbour_count;
 mod id_allocator;

@@ -10,9 +10,10 @@ homepage = "https://github.com/stevebob/entity-store.git"
 readme = "README.md"
 
 [dependencies]
-direction = "0.10"
 append = "0.1"
 cgmath = "0.16"
+direction = "0.13"
+grid_2d = "0.7"
 num = { version = "0.1", default-features = false }
 serde = "1.0"
 serde_derive = "1.0"
