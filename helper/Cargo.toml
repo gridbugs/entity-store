@@ -11,6 +11,7 @@ readme = "README.md"
 
 [dependencies]
 direction = "0.10"
+append = "0.1"
 cgmath = "0.16"
 num = { version = "0.1", default-features = false }
 serde = "1.0"

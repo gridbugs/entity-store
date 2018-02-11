@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 use std::collections::{HashMap, HashSet, BTreeMap, BTreeSet};
-use super::{EntityId, EntityVecMap, EntityVecSet, EntityChange, ComponentValue, ComponentType};
+use super::{EntityId, EntityVecMap, EntityVecSet, EntityChange, ComponentValue, ComponentType, insert};
+use entity_store_helper::append::Append;
 
 pub type EntityHashMap<T> = HashMap<EntityId, T>;
 pub type EntityBTreeMap<T> = BTreeMap<EntityId, T>;
@@ -61,6 +62,38 @@ impl EntityStore {
                 {% endfor %}
             }
         }
+    }
+
+    pub fn clone_values<A: Append<(EntityId, ComponentValue)>>(&self, buf: &mut A) {
+        {% for key, component in components %}
+            {% if component.storage %}
+                {% if component.type %}
+                    for (id, value) in self.{{ key }}.iter() {
+                        buf.append((id.clone(), ComponentValue::{{ component.name }}(value.clone())));
+                    }
+                {% else %}
+                    for id in self.{{ key }}.iter() {
+                        buf.append((id.clone(), ComponentValue::{{ component.name }}));
+                    }
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    }
+
+    pub fn clone_changes<A: Append<EntityChange>>(&self, buf: &mut A) {
+        {% for key, component in components %}
+            {% if component.storage %}
+                {% if component.type %}
+                    for (id, value) in self.{{ key }}.iter() {
+                        buf.append(insert::{{ key }}(id.clone(), value.clone()));
+                    }
+                {% else %}
+                    for id in self.{{ key }}.iter() {
+                        buf.append(insert::{{ key }}(id.clone()));
+                    }
+                {% endif %}
+            {% endif %}
+        {% endfor %}
     }
 }
 

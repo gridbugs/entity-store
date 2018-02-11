@@ -7,6 +7,7 @@ extern crate serde;
 pub extern crate direction;
 pub extern crate cgmath;
 pub extern crate num;
+pub extern crate append;
 
 mod neighbour_count;
 mod id_allocator;
