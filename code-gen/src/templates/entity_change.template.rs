@@ -15,6 +15,13 @@ impl EntityChange {
             &EntityChange::Remove(id, ..) => id,
         }
     }
+
+    pub fn typ(&self) -> ComponentType {
+        match self {
+            &EntityChange::Insert(_, ref value) => value.typ(),
+            &EntityChange::Remove(_, typ) => typ,
+        }
+    }
 }
 
 pub mod insert {
