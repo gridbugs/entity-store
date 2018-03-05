@@ -152,10 +152,10 @@ impl SpatialHashTable {
                                             for d in Directions {
                                                 if let Some(cell) = self.grid.get_mut(*position + d.coord()) {
                                                     cell.{{ field.key }}.inc(d.opposite());
-                                                    cell.last_updated = time;
                                                 }
                                             }
                                         }
+                                        cell.last_updated = time;
                                     {% endif %}
                                 {% endfor %}
 
@@ -183,8 +183,8 @@ impl SpatialHashTable {
                                                 cell.{{ field.key }}.insert(id);
                                             {% endif %}
                                         {% endfor %}
-                                            cell.last_updated = time;
                                         }
+                                        cell.last_updated = time;
                                     }
                                 {% endif %}
                             }
@@ -214,10 +214,10 @@ impl SpatialHashTable {
                                             for d in Directions {
                                                 if let Some(cell) = self.grid.get_mut(*position + d.vector()) {
                                                     cell.{{ field.key }}.dec(d.opposite());
-                                                    cell.last_updated = time;
                                                 }
                                             }
                                         }
+                                        cell.last_updated = time;
                                     {% endif %}
                                 {% endfor %}
 
@@ -238,8 +238,8 @@ impl SpatialHashTable {
                                                 cell.{{ field.key }}.remove(&id);
                                             {% endif %}
                                         {% endfor %}
-                                            cell.last_updated = time;
                                         }
+                                        cell.last_updated = time;
                                     }
                                 {% endif %}
                             }
@@ -259,10 +259,10 @@ impl SpatialHashTable {
                         for d in Directions {
                             if let Some(cell) = self.grid.get_mut(coord + d.coord()) {
                                 cell.{{ field.key }}.inc(d.opposite());
-                                cell.last_updated = time;
                             }
                         }
                     }
+                    cell.last_updated = time;
                 {% endif %}
             {% endfor %}
         }
@@ -274,10 +274,10 @@ impl SpatialHashTable {
                         for d in Directions {
                             if let Some(cell) = self.grid.get_mut(coord + d.coord()) {
                                 cell.{{ field.key }}.dec(d.opposite());
-                                cell.last_updated = time;
                             }
                         }
                     }
+                    cell.last_updated = time;
                 {% endif %}
             {% endfor %}
         }
