@@ -23,6 +23,10 @@ impl EntityComponentTable {
         }
     }
 
+    pub fn get(&self, id: EntityId) -> ComponentTypeSet {
+        self.0.get(&id).cloned().unwrap_or_else(ComponentTypeSet::new)
+    }
+
     pub fn component_types(&self, id: EntityId) -> ComponentTypeSetIter {
         self.0.get(&id)
             .map(|s| s.iter())
