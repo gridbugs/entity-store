@@ -83,6 +83,20 @@ impl EntityStore {
         }
     }
 
+    pub fn contains(&self, id: EntityId, component_type: ComponentType) -> bool {
+        match component_type {
+            {% for key, component in components %}
+                ComponentType::{{ component.name }} => {
+                    {% if component.type %}
+                        self.{{ key }}.contains_key(&id)
+                    {% else %}
+                        self.{{ key }}.contains(&id)
+                    {% endif %}
+                }
+            {% endfor %}
+        }
+    }
+
     pub fn remove(&mut self, id: EntityId, component_type: ComponentType) -> Option<ComponentValue> {
         match component_type {
             {% for key, component in components %}
