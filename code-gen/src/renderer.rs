@@ -15,15 +15,12 @@ impl Renderer {
         let templates = vec![
             ("mod",                     include_str!("templates/mod.template.rs")),
             ("id",                      include_str!("templates/id.template.rs")),
-            ("component",               include_str!("templates/component.template.rs")),
-            ("entity_vec",              include_str!("templates/entity_vec.template.rs")),
+            ("iterators",               include_str!("templates/iterators.template.rs")),
             ("entity_store",            include_str!("templates/entity_store.template.rs")),
-            ("entity_change",           include_str!("templates/entity_change.template.rs")),
-            ("component_type_set",      include_str!("templates/component_type_set.template.rs")),
-            ("constants",               include_str!("templates/constants.template.rs")),
-            ("entity_component_table",  include_str!("templates/entity_component_table.template.rs")),
+            ("entity_store_raw",        include_str!("templates/entity_store_raw.template.rs")),
+            ("flat_collections",        include_str!("templates/flat_collections.template.rs")),
+            ("vec_collections",         include_str!("templates/vec_collections.template.rs")),
             ("spatial_hash",            include_str!("templates/spatial_hash.template.rs")),
-            ("entity_id_allocator",     include_str!("templates/entity_id_allocator.template.rs")),
         ];
 
         let module_names = templates.iter().map(|&(n, _)| n).collect();

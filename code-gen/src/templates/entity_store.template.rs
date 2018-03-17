@@ -1,245 +1,255 @@
-#![allow(dead_code)]
-#![allow(unused_imports)]
-use std::collections::{HashMap, HashSet, BTreeMap, BTreeSet};
-use super::{EntityId, EntityVecMap, EntityVecSet, EntityChange, ComponentValue, ComponentRef,
-            ComponentType, ComponentTypeSetIter, EntityComponentTable, insert};
-use entity_store_helper::append::Append;
-
-pub type EntityHashMap<T> = HashMap<EntityId, T>;
-pub type EntityBTreeMap<T> = BTreeMap<EntityId, T>;
-pub type EntityHashSet = HashSet<EntityId>;
-pub type EntityBTreeSet = BTreeSet<EntityId>;
+use std::marker::PhantomData;
+use super::id::{EntityId, EntityIdRaw, EntityWit, EntityIdToFree};
+use super::entity_store_raw::*;
+use super::iterators::*;
+use super::spatial_hash::{SpatialHashTable, SpatialHashCell};
+use entity_store_helper::grid_2d::{self, Grid, Size, Coord, CoordIter};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityStore {
+    raw: EntityStoreRaw,
+    spatial_hash: SpatialHashTable,
+}
+
+pub struct EntityIdIterOfRef<'a, 'w, I: Iterator<Item=&'a EntityIdRaw>> {
+    iter: I,
+    wit: &'w EntityWit<'w>,
+}
+
+impl<'a, 'w, I: Iterator<Item=&'a EntityIdRaw>> Iterator for EntityIdIterOfRef<'a, 'w, I> {
+    type Item = EntityId<'w>;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|raw| {
+            EntityId {
+                raw: *raw,
+                wit: *self.wit,
+            }
+        })
+    }
+}
+
+impl<'a, 'w, I: Iterator<Item=&'a EntityIdRaw>> EntityIdIterOfRef<'a, 'w, I> {
+    pub(super) fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
+        EntityIdIterOfRef {
+            iter,
+            wit,
+        }
+    }
+}
+
+pub struct EntityIdAndValIterOfRef<'a, 'w, T: 'a, I: Iterator<Item=(&'a EntityIdRaw, &'a T)>> {
+    iter: I,
+    wit: &'w EntityWit<'w>,
+}
+
+impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a T)>> Iterator for EntityIdAndValIterOfRef<'a, 'w, T, I> {
+    type Item = (EntityId<'w>, &'a T);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(raw, t)| {
+            (EntityId {
+                raw: *raw,
+                wit: *self.wit,
+            }, t)
+        })
+    }
+}
+
+impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a T)>> EntityIdAndValIterOfRef<'a, 'w, T, I> {
+    fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
+        EntityIdAndValIterOfRef {
+            iter,
+            wit,
+        }
+    }
+}
+
+pub struct EntityIdIterOfVal<'w, I: Iterator<Item=EntityIdRaw>> {
+    iter: I,
+    wit: &'w EntityWit<'w>,
+}
+
+impl<'w, I: Iterator<Item=EntityIdRaw>> Iterator for EntityIdIterOfVal<'w, I> {
+    type Item = EntityId<'w>;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|raw| {
+            EntityId {
+                raw,
+                wit: *self.wit,
+            }
+        })
+    }
+}
+
+impl<'w, I: Iterator<Item=EntityIdRaw>> EntityIdIterOfVal<'w, I> {
+    fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
+        Self {
+            iter,
+            wit,
+        }
+    }
+}
+
+pub struct EntityIdAndValIterOfVal<'a, 'w, T: 'a, I: Iterator<Item=(EntityIdRaw, &'a T)>> {
+    iter: I,
+    wit: &'w EntityWit<'w>
+}
+
+impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a T)>> Iterator for EntityIdAndValIterOfVal<'a, 'w, T, I> {
+    type Item = (EntityId<'w>, &'a T);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(raw, t)| {
+            (EntityId {
+                raw,
+                wit: *self.wit,
+            }, t)
+        })
+    }
+}
+
+impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a T)>> EntityIdAndValIterOfVal<'a, 'w, T, I> {
+    fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
+        EntityIdAndValIterOfVal {
+            iter,
+            wit,
+        }
+    }
+}
+
+pub type SpatialHashIter<'a> = grid_2d::Iter<'a, SpatialHashCell>;
+pub type SpatialHashCoordEnumerate<'a> = grid_2d::CoordEnumerate<'a, SpatialHashCell>;
+
+impl EntityStore {
+    pub fn new(size: Size) -> Self {
+        Self {
+            raw: EntityStoreRaw::new(),
+            spatial_hash: SpatialHashTable::new(size),
+        }
+    }
+
+    pub fn free_entity_id<'a, 'w>(&'a mut self, wit: &'w mut EntityWit, id: EntityIdToFree) {
+        unimplemented!()
+    }
+
+    pub fn spatial_hash_width(&self) -> u32 {
+        self.spatial_hash.grid.width()
+    }
+
+    pub fn spatial_hash_height(&self) -> u32 {
+        self.spatial_hash.grid.height()
+    }
+
+    pub fn spatial_hash_size(&self) -> Size {
+        self.spatial_hash.grid.size()
+    }
+
+    pub fn spatial_hash_iter(&self) -> SpatialHashIter {
+        self.spatial_hash.grid.iter()
+    }
+
+    pub fn spatial_hash_coords(&self) -> CoordIter {
+        self.spatial_hash.grid.coords()
+    }
+
+    pub fn spatial_hash_enumerate(&self) -> SpatialHashCoordEnumerate {
+        self.spatial_hash.grid.enumerate()
+    }
+
+    pub fn spatial_hash_get(&self, coord: Coord) -> Option<&SpatialHashCell> {
+        self.spatial_hash.grid.get(coord.into())
+    }
+
     {% for key, component in components %}
         {% if component.storage %}
             {% if component.type %}
-                pub {{ key }}: {{ component.storage.rust_type }}<{{ component.type }}>,
+                pub fn get_{{ key }}(&self, id: EntityId) -> Option<&{{ component.type }}> {
+                    self.raw.{{ key }}.get(&id.raw)
+                }
+                pub fn contains_{{ key }}(&self, id: EntityId) -> bool {
+                    self.raw.{{ key }}.contains_key(&id.raw)
+                }
+                pub fn iter_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.storage.map_iter_wrapper }}<'a, 'w, {{ component.type }}, {{ component.storage.map_iter }}<{{ component.type }}>> {
+                    {{ component.storage.map_iter_wrapper }}::new(self.raw.{{ key }}.iter(), wit)
+                }
+                pub fn ids_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.storage.set_iter_wrapper }}<
+                {% if component.storage.set_iter_wrapper != "EntityIdIterOfVal" %}
+                    'a,
+                {% endif %}
+                'w, {{ component.storage.map_keys }}<{{ component.type }}>> {
+                    {{ component.storage.set_iter_wrapper }}::new(self.raw.{{ key }}.keys(), wit)
+                }
+                pub fn any_{{ key }}<'w>(&self, wit: &'w EntityWit<'w>) -> Option<(EntityId<'w>, &{{ component.type }})> {
+                    {% if component.storage.type == "vector" %}
+                        self.raw.{{ key }}.first().map(|(&raw, value)| {
+                            (EntityId {
+                                raw,
+                                wit: *wit,
+                            }, value)
+                        })
+                    {% else %}
+                        self.iter_{{ key }}(wit).next()
+                    {% endif %}
+                }
+                pub fn any_id_{{ key }}<'w>(&self, wit: &'w EntityWit<'w>) -> Option<EntityId<'w>> {
+                    {% if component.storage.type == "vector" %}
+                        self.raw.{{ key }}.first_key().map(|&raw| {
+                            EntityId {
+                                raw,
+                                wit: *wit,
+                            }
+                        })
+                    {% else %}
+                        self.ids_{{ key }}(wit).next()
+                    {% endif %}
+                }
+                pub fn insert_{{ key }}(&mut self, id: EntityId, {{ key }}: {{ component.type }}) -> Option<{{ component.type }}> {
+                    {% if component.tracked_by_spatial_hash %}
+                        self.spatial_hash.raw_insert_{{ key }}(&self.raw, id.raw, &{{ key }});
+                    {% endif %}
+                    self.raw.{{ key }}.insert(id.raw, {{ key }})
+                }
+                pub fn remove_{{ key }}(&mut self, id: EntityId) -> Option<{{ component.type }}> {
+                    {% if component.tracked_by_spatial_hash %}
+                        self.spatial_hash.raw_remove_{{ key }}(&self.raw, id.raw);
+                    {% endif %}
+                    self.raw.{{ key }}.remove(&id.raw)
+                }
             {% else %}
-                pub {{ key }}: {{ component.storage.rust_type }},
+                pub fn contains_{{ key }}(&self, id: EntityId) -> bool {
+                    self.raw.{{ key }}.contains(&id.raw)
+                }
+                pub fn iter_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.storage.set_iter_wrapper }}<
+                {% if component.storage.set_iter_wrapper != "EntityIdIterOfVal" %}
+                    'a,
+                {% endif %}
+                    'w, {{ component.storage.set_iter }}> {
+                    {{ component.storage.set_iter_wrapper }}::new(self.raw.{{ key }}.iter(), wit)
+                }
+                pub fn any_{{ key }}<'w>(&self, wit: &'w EntityWit<'w>) -> Option<EntityId<'w>> {
+                    {% if component.storage.type == "vector" %}
+                        self.raw.{{ key }}.first().map(|&raw| {
+                            EntityId {
+                                raw,
+                                wit: *wit,
+                            }
+                        })
+                    {% else %}
+                        self.iter_{{ key }}(wit).next()
+                    {% endif %}
+                }
+                pub fn insert_{{ key }}(&mut self, id: EntityId) -> bool {
+                    {% if component.tracked_by_spatial_hash %}
+                        self.spatial_hash.raw_insert_{{ key }}(&self.raw, id.raw);
+                    {% endif %}
+                    self.raw.{{ key }}.insert(id.raw)
+                }
+                pub fn remove_{{ key }}(&mut self, id: EntityId) -> bool {
+                    {% if component.tracked_by_spatial_hash %}
+                        self.spatial_hash.raw_remove_{{ key }}(&self.raw, id.raw);
+                    {% endif %}
+                    self.raw.{{ key }}.remove(&id.raw)
+                }
             {% endif %}
+
         {% endif %}
     {% endfor %}
-}
-
-impl EntityStore {
-    pub fn new() -> Self {
-        Self {
-            {% for key, component in components %}
-                {% if component.storage %}
-                    {{ key }}: {{ component.storage.rust_type }}::default(),
-                {% endif %}
-            {% endfor %}
-        }
-    }
-
-    pub fn commit(&mut self, change: EntityChange) {
-        match change {
-            EntityChange::Insert(id, value) => match value {
-                {% for key, component in components %}
-                    {% if component.storage %}
-                        {% if component.type %}
-                            ComponentValue::{{ component.name }}(value) => { self.{{ key }}.insert(id, value); }
-                        {% else %}
-                            ComponentValue::{{ component.name }} => { self.{{ key }}.insert(id); }
-                        {% endif %}
-                    {% else %}
-                        {% if component.type %}
-                            ComponentValue::{{ component.name }}(_) => {}
-                        {% else %}
-                            ComponentValue::{{ component.name }} => {}
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-            }
-            EntityChange::Remove(id, typ) => match typ {
-                {% for key, component in components %}
-                    {% if component.storage %}
-                        ComponentType::{{ component.name }} => { self.{{ key }}.remove(&id); }
-                    {% else %}
-                        ComponentType::{{ component.name }} => {}
-                    {% endif %}
-                {% endfor %}
-            }
-        }
-    }
-
-    pub fn get(&self, id: EntityId, component_type: ComponentType) -> Option<ComponentRef> {
-        match component_type {
-            {% for key, component in components %}
-                ComponentType::{{ component.name }} => {
-                    {% if component.type %}
-                        self.{{ key }}.get(&id).map(ComponentRef::{{ component.name }})
-                    {% else %}
-                        if self.{{ key }}.contains(&id) {
-                            Some(ComponentRef::{{ component.name }})
-                        } else {
-                            None
-                        }
-                    {% endif %}
-                }
-            {% endfor %}
-        }
-    }
-
-    pub fn contains(&self, id: EntityId, component_type: ComponentType) -> bool {
-        match component_type {
-            {% for key, component in components %}
-                ComponentType::{{ component.name }} => {
-                    {% if component.type %}
-                        self.{{ key }}.contains_key(&id)
-                    {% else %}
-                        self.{{ key }}.contains(&id)
-                    {% endif %}
-                }
-            {% endfor %}
-        }
-    }
-
-    pub fn remove(&mut self, id: EntityId, component_type: ComponentType) -> Option<ComponentValue> {
-        match component_type {
-            {% for key, component in components %}
-                ComponentType::{{ component.name }} => {
-                    {% if component.type %}
-                        self.{{ key }}.remove(&id).map(ComponentValue::{{ component.name }})
-                    {% else %}
-                        if self.{{ key }}.remove(&id) {
-                            Some(ComponentValue::{{ component.name }})
-                        } else {
-                            None
-                        }
-                    {% endif %}
-                }
-            {% endfor %}
-        }
-    }
-
-    pub fn insert(&mut self, id: EntityId, component_value: ComponentValue) -> Option<ComponentValue> {
-        match component_value {
-            {% for key, component in components %}
-                {% if component.type %}
-                    ComponentValue::{{ component.name }}(value) => {
-                        self.{{ key }}.insert(id, value).map(ComponentValue::{{ component.name }})
-                    }
-                {% else %}
-                    ComponentValue::{{ component.name }} => {
-                        if self.{{ key }}.insert(id) {
-                            Some(ComponentValue::{{ component.name }})
-                        } else {
-                            None
-                        }
-                    }
-                {% endif %}
-            {% endfor %}
-        }
-    }
-
-    pub fn clone_values<A: Append<(EntityId, ComponentValue)>>(&self, buf: &mut A) {
-        {% for key, component in components %}
-            {% if component.storage %}
-                {% if component.type %}
-                    for (id, value) in self.{{ key }}.iter() {
-                        buf.append((id.clone(), ComponentValue::{{ component.name }}(value.clone())));
-                    }
-                {% else %}
-                    for id in self.{{ key }}.iter() {
-                        buf.append((id.clone(), ComponentValue::{{ component.name }}));
-                    }
-                {% endif %}
-            {% endif %}
-        {% endfor %}
-    }
-
-    pub fn clone_changes<A: Append<EntityChange>>(&self, buf: &mut A) {
-        {% for key, component in components %}
-            {% if component.storage %}
-                {% if component.type %}
-                    for (id, value) in self.{{ key }}.iter() {
-                        buf.append(insert::{{ key }}(id.clone(), value.clone()));
-                    }
-                {% else %}
-                    for id in self.{{ key }}.iter() {
-                        buf.append(insert::{{ key }}(id.clone()));
-                    }
-                {% endif %}
-            {% endif %}
-        {% endfor %}
-    }
-
-    pub fn component_ref_iter(&self, entity_id: EntityId, component_type_iter: ComponentTypeSetIter) -> ComponentRefIter {
-        ComponentRefIter {
-            entity_store: self,
-            entity_id,
-            component_type_iter,
-        }
-    }
-
-    pub fn component_drain(&mut self, entity_id: EntityId, component_type_iter: ComponentTypeSetIter) -> ComponentDrain {
-        ComponentDrain {
-            entity_store: self,
-            entity_id,
-            component_type_iter,
-        }
-    }
-
-    pub fn component_drain_insert(&mut self, source_id: EntityId, dest_id: EntityId, component_type_iter: ComponentTypeSetIter)
-        -> ComponentDrainInsert
-    {
-        let drain = self.component_drain(source_id, component_type_iter);
-        ComponentDrainInsert {
-            drain,
-            dest_id,
-        }
-    }
-}
-
-impl Default for EntityStore {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-pub struct ComponentRefIter<'a> {
-    entity_store: &'a EntityStore,
-    entity_id: EntityId,
-    component_type_iter: ComponentTypeSetIter,
-}
-
-impl<'a> Iterator for ComponentRefIter<'a> {
-    type Item = ComponentRef<'a>;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.component_type_iter.next().and_then(|component_type| {
-            self.entity_store.get(self.entity_id, component_type)
-        })
-    }
-}
-
-pub struct ComponentDrain<'a> {
-    entity_store: &'a mut EntityStore,
-    entity_id: EntityId,
-    component_type_iter: ComponentTypeSetIter,
-}
-
-impl<'a> Iterator for ComponentDrain<'a> {
-    type Item = ComponentValue;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.component_type_iter.next().and_then(|component_type| {
-            self.entity_store.remove(self.entity_id, component_type)
-        })
-    }
-}
-
-pub struct ComponentDrainInsert<'a> {
-    drain: ComponentDrain<'a>,
-    dest_id: EntityId,
-}
-
-impl<'a> Iterator for ComponentDrainInsert<'a> {
-    type Item = EntityChange;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.drain.next().map(|value| {
-            EntityChange::Insert(self.dest_id, value)
-        })
-    }
 }

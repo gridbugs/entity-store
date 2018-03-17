@@ -5,6 +5,11 @@ pub struct StorageInfo {
     #[serde(rename = "type")]
     pub typ: String,
     pub rust_type: String,
+    pub map_iter_wrapper: String,
+    pub set_iter_wrapper: String,
+    pub set_iter: String,
+    pub map_iter: String,
+    pub map_keys: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -16,6 +21,7 @@ pub struct Component {
     pub index: usize,
     pub key: String,
     pub contains: String,
+    pub tracked_by_spatial_hash: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -44,13 +50,12 @@ pub struct SpatialHash {
     pub fields: BTreeMap<String, SpatialHashField>,
     pub by_component: BTreeMap<String, ByComponentInfo>,
     pub position_component: Component,
-    pub has_neighbours: bool,
 }
 
 #[derive(Debug, Serialize)]
 pub struct Spec {
     pub components: BTreeMap<String, Component>,
-    pub spatial_hash: Option<SpatialHash>,
+    pub spatial_hash: SpatialHash,
     pub id_type: String,
     pub num_component_types: usize,
 }

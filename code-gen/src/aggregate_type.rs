@@ -3,7 +3,6 @@ pub enum AggregateType {
     Total,
     Count,
     Set,
-    NeighbourCount,
 }
 
 use self::AggregateType::*;
@@ -12,7 +11,6 @@ pub const ALL: &[AggregateType] = &[
     Total,
     Count,
     Set,
-    NeighbourCount,
 ];
 
 impl AggregateType {
@@ -21,7 +19,6 @@ impl AggregateType {
             "total" => Some(Total),
             "count" => Some(Count),
             "set" => Some(Set),
-            "neighbour_count" => Some(NeighbourCount),
             _ => None,
         }
     }
@@ -31,7 +28,6 @@ impl AggregateType {
             Total => "total",
             Count => "count",
             Set => "set",
-            NeighbourCount => "neighbour_count",
         }
     }
 
@@ -40,7 +36,6 @@ impl AggregateType {
             // we'll need to look up the storage when the total changes
             Total => true,
             // we'll need to check if this component is present
-            NeighbourCount => true,
             _ => false,
         }
     }
@@ -50,8 +45,7 @@ impl AggregateType {
             // totals are aggregated into the component's type
             Total => component_type.unwrap().clone(),
             Count => field_type.cloned().unwrap_or_else(|| "usize".to_string()),
-            Set => field_type.cloned().unwrap_or_else(|| "::std::collections::HashSet<super::EntityId>".to_string()),
-            NeighbourCount => "::entity_store_helper::NeighbourCount".to_string(),
+            Set => field_type.cloned().unwrap_or_else(|| "SpatialHashCellEntityIdSet".to_string()),
         }
     }
 
@@ -60,7 +54,6 @@ impl AggregateType {
             Total => Some("get"),
             Count => Some("contains"),
             Set => Some("contains"),
-            NeighbourCount => None,
         }
     }
 }

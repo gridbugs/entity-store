@@ -1,18 +1,35 @@
-{% if spatial_hash %}
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-#![allow(dead_code)]
-#![allow(unreachable_patterns)]
-
-use super::{EntityChange, EntityStore, EntityId, ComponentType, ComponentValue};
+use super::id::{EntityIdRaw, EntityWit, EntityId};
+use super::entity_store_raw::EntityStoreRaw;
+use entity_store_helper::grid_2d::{self, Grid, Size, Coord, CoordIter};
 use entity_store_helper::num::One;
-use entity_store_helper::direction::Directions;
+use super::entity_store_raw::EntityVecSet;
+use super::entity_store::EntityIdIterOfRef;
+use super::iterators::EntityVecSetIter;
 
-use entity_store_helper::grid_2d;
-pub use entity_store_helper::grid_2d::{Grid, Size, Coord, CoordIter};
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SpatialHashCellEntityIdSet {
+    set: EntityVecSet,
+}
 
-pub type Iter<'a> = grid_2d::Iter<'a, SpatialHashCell>;
-pub type CoordEnumerate<'a> = grid_2d::CoordEnumerate<'a, SpatialHashCell>;
+impl SpatialHashCellEntityIdSet {
+    fn insert(&mut self, id: EntityIdRaw) {
+        self.set.insert(id);
+    }
+    fn remove(&mut self, id: &EntityIdRaw) {
+        self.set.remove(id);
+    }
+    pub fn iter<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> EntityIdIterOfRef<'a, 'w, EntityVecSetIter<'a>> {
+        EntityIdIterOfRef::new(self.set.iter(), wit)
+    }
+    pub fn any<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> Option<EntityId<'w>> {
+        self.set.first().map(|&raw| {
+            EntityId {
+                raw,
+                wit: *wit,
+            }
+        })
+    }
+}
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SpatialHashCell {
@@ -25,7 +42,7 @@ pub struct SpatialHashCell {
 }
 
 impl SpatialHashCell {
-    fn insert(&mut self, id: EntityId, entity_store: &EntityStore, time: u64) {
+    fn raw_insert(&mut self, entity_store: &EntityStoreRaw, last_updated: u64, id: EntityIdRaw) {
         {% for _, by_component in spatial_hash.by_component %}
             {% if by_component.lookup %}
                 {% if by_component.lookup == "get" %}
@@ -47,9 +64,9 @@ impl SpatialHashCell {
                 }
             {% endif %}
         {% endfor %}
-        self.last_updated = time;
+        self.last_updated = last_updated;
     }
-    fn remove(&mut self, id: EntityId, entity_store: &EntityStore, time: u64) {
+    fn raw_remove(&mut self, entity_store: &EntityStoreRaw, last_updated: u64, id: EntityIdRaw) {
         {% for _, by_component in spatial_hash.by_component %}
             {% if by_component.lookup %}
                 {% if by_component.lookup == "get" %}
@@ -71,216 +88,110 @@ impl SpatialHashCell {
                 }
             {% endif %}
         {% endfor %}
-        self.last_updated = time;
+        self.last_updated = last_updated;
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpatialHashTable {
-    grid: Grid<SpatialHashCell>,
+    pub(super) grid: Grid<SpatialHashCell>,
+    last_updated: u64,
 }
 
 impl SpatialHashTable {
     pub fn new(size: Size) -> Self {
         Self {
             grid: Grid::new_default(size),
+            last_updated: 0,
         }
     }
 
-    pub fn width(&self) -> u32 {
-        self.grid.width()
+    pub fn raw_insert_{{ spatial_hash.position_component.key }}(&mut self, entity_store: &EntityStoreRaw, id: EntityIdRaw, coord: &{{ spatial_hash.position_component.type }}) {
+        if let Some(current) = entity_store.{{ spatial_hash.position_component.key }}.get(&id) {
+            if let Some(cell) = self.grid.get_mut(*current) {
+                cell.raw_remove(entity_store, self.last_updated, id);
+            }
+        }
+        if let Some(cell) = self.grid.get_mut(*coord) {
+            cell.raw_insert(entity_store, self.last_updated, id);
+        }
+        self.last_updated += 1;
     }
 
-    pub fn height(&self) -> u32 {
-        self.grid.height()
+    pub fn raw_remove_{{ spatial_hash.position_component.key }}(&mut self, entity_store: &EntityStoreRaw, id: EntityIdRaw) {
+        if let Some(current) = entity_store.{{ spatial_hash.position_component.key }}.get(&id) {
+            if let Some(cell) = self.grid.get_mut(*current) {
+                cell.raw_remove(entity_store, self.last_updated, id);
+                self.last_updated += 1;
+            }
+        }
     }
 
-    pub fn size(&self) -> Size {
-        self.grid.size()
-    }
+    {% for _, by_component in spatial_hash.by_component %}
+        {% if by_component.component.type %}
+        pub fn raw_insert_{{ by_component.component.key }}(&mut self, entity_store: &EntityStoreRaw, id: EntityIdRaw, value: &{{ by_component.component.type}}) {
+        {% else %}
+        pub fn raw_insert_{{ by_component.component.key }}(&mut self, entity_store: &EntityStoreRaw, id: EntityIdRaw) {
+        {% endif %}
+            if let Some(coord) = entity_store.{{ spatial_hash.position_component.key }}.get(&id) {
+                if let Some(cell) = self.grid.get_mut(*coord) {
+                    {% if by_component.lookup == "get" %}
+                        if let Some(current) = entity_store.{{ by_component.component.key }}.get(&id) {
+                            {% for _, field in by_component.fields %}
+                                {% if field.aggregate.type == "total" %}
+                                    let increase = value - *current;
+                                    cell.{{ field.key }} += increase;
+                                {% endif %}
+                            {% endfor %}
+                        } else {
+                    {% else %}
+                        if !entity_store.{{ by_component.component.key }}.{{ by_component.component.contains }}(&id) {
+                    {% endif %}
 
-    pub fn iter(&self) -> Iter {
-        self.grid.iter()
-    }
-
-    pub fn coords(&self) -> CoordIter {
-        self.grid.coords()
-    }
-
-    pub fn enumerate(&self) -> CoordEnumerate {
-        self.grid.enumerate()
-    }
-
-    pub fn get<T: Into<Coord>>(&self, coord: T) -> Option<&SpatialHashCell> {
-        self.grid.get(coord.into())
-    }
-
-    fn get_mut<T: Into<Coord>>(&mut self, coord: T) -> Option<&mut SpatialHashCell> {
-        self.grid.get_mut(coord.into())
-    }
-
-    pub fn update(&mut self, entity_store: &EntityStore, change: &EntityChange, time: u64) {
-        match change {
-            &EntityChange::Insert(id, ref value) => {
-                match value {
-                    &ComponentValue::{{ spatial_hash.position_component.name }}(position) => {
-                        if let Some(current) = entity_store.{{ spatial_hash.position_component.key }}.get(&id) {
-                            if let Some(cell) = self.grid.get_mut(*current) {
-                                cell.remove(id, entity_store, time);
-                            }
-                            {% if spatial_hash.has_neighbours %}
-                            self.remove_neighbours(id, entity_store, time, *current);
+                        {% for _, field in by_component.fields %}
+                            {% if field.aggregate.type == "total" %}
+                                cell.{{ field.key }} += value;
+                            {% elif field.aggregate.type == "count" %}
+                                cell.{{ field.key }} += {{ field.aggregate.rust_type }}::one();
+                            {% elif field.aggregate.type == "set" %}
+                                cell.{{ field.key }}.insert(id);
                             {% endif %}
-                        }
-                        if let Some(cell) = self.grid.get_mut(position) {
-                            cell.insert(id, entity_store, time);
-                        }
-                        {% if spatial_hash.has_neighbours %}
-                        self.insert_neighbours(id, entity_store, time, position);
-                        {% endif %}
+                        {% endfor %}
                     }
-                    {% for _, by_component in spatial_hash.by_component %}
-                        {% if by_component.component.type %}
-                            &ComponentValue::{{ by_component.component.name }}(value) => {
+
+                    cell.last_updated = self.last_updated;
+                    self.last_updated += 1;
+                }
+            }
+        }
+        pub fn raw_remove_{{ by_component.component.key }}(&mut self, entity_store: &EntityStoreRaw, id: EntityIdRaw) {
+            if let Some(coord) = entity_store.{{ spatial_hash.position_component.key }}.get(&id) {
+                if let Some(cell) = self.grid.get_mut(*coord) {
+
+
+                    {% if by_component.lookup %}
+                        {% if by_component.lookup == "get" %}
+                            if let Some(current) = entity_store.{{ by_component.component.key }}.get(&id) {
                         {% else %}
-                            &ComponentValue::{{ by_component.component.name }} => {
+                            if entity_store.{{ by_component.component.key }}.{{ by_component.component.contains }}(&id) {
                         {% endif %}
-                            if let Some(position) = entity_store.{{ spatial_hash.position_component.key }}.get(&id) {
-                                {% for _, field in by_component.fields %}
-                                    {% if field.aggregate.type == "neighbour_count" %}
-                                        if !entity_store.{{ by_component.component.key }}.{{ by_component.component.contains }}(&id) {
-                                            for d in Directions {
-                                                if let Some(cell) = self.grid.get_mut(*position + d.coord()) {
-                                                    cell.{{ field.key }}.inc(d.opposite());
-                                                }
-                                            }
-                                        }
-                                        cell.last_updated = time;
-                                    {% endif %}
-                                {% endfor %}
 
-                                {% if by_component.lookup %}
-                                    if let Some(cell) = self.grid.get_mut(*position) {
-                                        {% if by_component.lookup == "get" %}
-                                            if let Some(current) = entity_store.{{ by_component.component.key }}.get(&id) {
-                                                {% for _, field in by_component.fields %}
-                                                    {% if field.aggregate.type == "total" %}
-                                                        let increase = value - *current;
-                                                        cell.{{ field.key }} += increase;
-                                                    {% endif %}
-                                                {% endfor %}
-                                            } else {
-                                        {% else %}
-                                            if !entity_store.{{ by_component.component.key }}.{{ by_component.component.contains }}(&id) {
-                                        {% endif %}
-
-                                        {% for _, field in by_component.fields %}
-                                            {% if field.aggregate.type == "total" %}
-                                                cell.{{ field.key }} += value;
-                                            {% elif field.aggregate.type == "count" %}
-                                                cell.{{ field.key }} += {{ field.aggregate.rust_type }}::one();
-                                            {% elif field.aggregate.type == "set" %}
-                                                cell.{{ field.key }}.insert(id);
-                                            {% endif %}
-                                        {% endfor %}
-                                        }
-                                        cell.last_updated = time;
-                                    }
-                                {% endif %}
-                            }
-                        }
-                    {% endfor %}
-                    _ => {}
-                }
-            }
-            &EntityChange::Remove(id, typ) => {
-                match typ {
-                    ComponentType::{{ spatial_hash.position_component.name }} => {
-                        if let Some(current) = entity_store.{{ spatial_hash.position_component.key }}.get(&id) {
-                            if let Some(cell) = self.grid.get_mut(*current) {
-                                cell.remove(id, entity_store, time);
-                            }
-                            {% if spatial_hash.has_neighbours %}
-                            self.remove_neighbours(id, entity_store, time, *current);
+                        {% for _, field in by_component.fields %}
+                            {% if field.aggregate.type == "total" %}
+                                cell.{{ field.key }} -= *current;
+                            {% elif field.aggregate.type == "count" %}
+                                cell.{{ field.key }} -= {{ field.aggregate.rust_type }}::one();
+                            {% elif field.aggregate.type == "set" %}
+                                cell.{{ field.key }}.remove(&id);
                             {% endif %}
+                        {% endfor %}
                         }
-                    }
-                    {% for _, by_component in spatial_hash.by_component %}
-                        ComponentType::{{ by_component.component.name }} => {
-                            if let Some(position) = entity_store.{{ spatial_hash.position_component.key }}.get(&id) {
-                                {% for _, field in by_component.fields %}
-                                    {% if field.aggregate.type == "neighbour_count" %}
-                                        if entity_store.{{ by_component.component.key }}.{{ by_component.component.contains }}(&id) {
-                                            for d in Directions {
-                                                if let Some(cell) = self.grid.get_mut(*position + d.vector()) {
-                                                    cell.{{ field.key }}.dec(d.opposite());
-                                                }
-                                            }
-                                        }
-                                        cell.last_updated = time;
-                                    {% endif %}
-                                {% endfor %}
+                    {% endif %}
 
-                                {% if by_component.lookup %}
-                                    if let Some(cell) = self.grid.get_mut(*position) {
-                                        {% if by_component.lookup == "get" %}
-                                            if let Some(current) = entity_store.{{ by_component.component.key }}.get(&id) {
-                                        {% else %}
-                                            if entity_store.{{ by_component.component.key }}.{{ by_component.component.contains }}(&id) {
-                                        {% endif %}
-
-                                        {% for _, field in by_component.fields %}
-                                            {% if field.aggregate.type == "total" %}
-                                                cell.{{ field.key }} -= *current;
-                                            {% elif field.aggregate.type == "count" %}
-                                                cell.{{ field.key }} -= {{ field.aggregate.rust_type }}::one();
-                                            {% elif field.aggregate.type == "set" %}
-                                                cell.{{ field.key }}.remove(&id);
-                                            {% endif %}
-                                        {% endfor %}
-                                        }
-                                        cell.last_updated = time;
-                                    }
-                                {% endif %}
-                            }
-                        }
-                    {% endfor %}
-                    _ => {}
+                    cell.last_updated = self.last_updated;
+                    self.last_updated += 1;
                 }
             }
         }
-    }
-
-    {% if spatial_hash.has_neighbours %}
-        fn insert_neighbours(&mut self, id: EntityId, entity_store: &EntityStore, time: u64, coord: Coord) {
-            {% for _, field in spatial_hash.fields %}
-                {% if field.aggregate.type == "neighbour_count" %}
-                    if entity_store.{{ field.component.key }}.{{ field.component.contains }}(&id) {
-                        for d in Directions {
-                            if let Some(cell) = self.grid.get_mut(coord + d.coord()) {
-                                cell.{{ field.key }}.inc(d.opposite());
-                            }
-                        }
-                    }
-                    cell.last_updated = time;
-                {% endif %}
-            {% endfor %}
-        }
-
-        fn remove_neighbours(&mut self, id: EntityId, entity_store: &EntityStore, time: u64, coord: Coord) {
-            {% for _, field in spatial_hash.fields %}
-                {% if field.aggregate.type == "neighbour_count" %}
-                    if entity_store.{{ field.component.key }}.{{ field.component.contains }}(&id) {
-                        for d in Directions {
-                            if let Some(cell) = self.grid.get_mut(coord + d.coord()) {
-                                cell.{{ field.key }}.dec(d.opposite());
-                            }
-                        }
-                    }
-                    cell.last_updated = time;
-                {% endif %}
-            {% endfor %}
-        }
-    {% endif %}
+    {% endfor %}
 }
-{% endif %}

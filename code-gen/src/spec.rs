@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use itertools;
 use storage_type::{self, StorageType};
 use aggregate_type::{self, AggregateType};
@@ -10,7 +10,7 @@ use output;
 #[derive(Debug, Clone)]
 pub struct Spec {
     components: ComponentSpec,
-    spatial_hash: Option<SpatialHashSpec>,
+    spatial_hash: SpatialHashSpec,
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +38,7 @@ pub struct SpatialHashField {
 pub struct SpatialHashSpec {
     position_component: String,
     fields: BTreeMap<String, SpatialHashField>,
+    tracked_components: BTreeSet<String>,
 }
 
 fn capitalise_first_letter(s: &str) -> String {
@@ -87,7 +88,7 @@ impl Component {
         })
     }
 
-    fn to_output(&self, key: &str, index: usize) -> output::Component {
+    fn to_output(&self, key: &str, index: usize, spatial_hash: &SpatialHashSpec) -> output::Component {
         let storage = self.storage_type.as_ref().map(|s| {
             output::StorageInfo {
                 typ: s.to_str().to_string(),
@@ -97,9 +98,16 @@ impl Component {
                     } else {
                         s.to_set_type().to_string()
                     }
-                }.to_string(),
+                },
+                map_iter_wrapper: s.to_map_iter_wrapper().to_string(),
+                set_iter_wrapper: s.to_set_iter_wrapper().to_string(),
+                map_iter: s.to_map_iter().to_string(),
+                map_keys: s.to_map_keys().to_string(),
+                set_iter: s.to_set_iter().to_string(),
             }
         });
+        let tracked_by_spatial_hash = spatial_hash.tracked_components.contains(key) ||
+            spatial_hash.position_component == key;
         output::Component {
             typ: self.typ.clone(),
             name: self.name.clone(),
@@ -107,6 +115,7 @@ impl Component {
             key: key.to_string(),
             index,
             contains: if self.typ.is_some() { "contains_key".to_string() } else { "contains".to_string() },
+            tracked_by_spatial_hash,
         }
     }
 }
@@ -189,19 +198,19 @@ impl Spec {
             }).collect();
         let spatial_hash_fields = spatial_hash_fields?;
 
+        let tracked_components = spatial_hash_fields.values().map(|v| v.component.key.clone()).collect::<BTreeSet<_>>();
+
         let spatial_hash = if let Some(shk) = spec_in.spatial_hash_key.as_ref() {
             if !components.contains_key(shk) {
                 return Err(Error::NoSuchComponent(shk.clone()));
             }
-            Some(SpatialHashSpec {
+            SpatialHashSpec {
                 position_component: shk.clone(),
                 fields: spatial_hash_fields,
-            })
-        } else {
-            if !spatial_hash_fields.is_empty() {
-                return Err(Error::MissingSpatialHashKey);
+                tracked_components,
             }
-            None
+        } else {
+            return Err(Error::MissingSpatialHashKey);
         };
 
         let valid_id_widths = &[8, 16, 32, 64];
@@ -223,15 +232,14 @@ impl Spec {
     pub fn to_output(&self) -> output::Spec {
         let components: BTreeMap<String, output::Component> = self.components.components.iter()
             .enumerate()
-            .map(|(i, (k, v))| (k.clone(), v.to_output(k, i)) ).collect();
+            .map(|(i, (k, v))| (k.clone(), v.to_output(k, i, &self.spatial_hash)) ).collect();
 
-        let spatial_hash = self.spatial_hash.as_ref().map(|sh| {
-            let fields: BTreeMap<String, output::SpatialHashField> = sh.fields.iter()
+        let spatial_hash = {
+            let fields: BTreeMap<String, output::SpatialHashField> = self.spatial_hash.fields.iter()
                 .map(|(k, f)| (k.clone(), f.to_output(k, &components))).collect();
-            let position_component = components.get(&sh.position_component).cloned().unwrap();
-            let mut has_neighbours = false;
+            let position_component = components.get(&self.spatial_hash.position_component).cloned().unwrap();
             let mut by_component = BTreeMap::new();
-            for (f, g) in izip!(fields.values(), sh.fields.values()) {
+            for (f, g) in izip!(fields.values(), self.spatial_hash.fields.values()) {
                 let current = by_component.entry(f.component.key.clone())
                     .or_insert_with(|| output::ByComponentInfo {
                         fields: BTreeMap::new(),
@@ -240,9 +248,6 @@ impl Spec {
                     });
 
                 if let Some(a) = g.aggregate_type {
-                    if let AggregateType::NeighbourCount = a {
-                        has_neighbours = true;
-                    }
                     if let Some(l) = a.to_lookup() {
                         current.lookup = match l {
                             "get" => Some("get"),
@@ -268,9 +273,8 @@ impl Spec {
                 fields,
                 by_component,
                 position_component,
-                has_neighbours,
             }
-        });
+        };
 
         output::Spec {
             num_component_types: self.components.components.len(),

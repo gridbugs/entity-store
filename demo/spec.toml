@@ -1,0 +1,17 @@
+id_width = 16
+spatial_hash_key = 'coord'
+
+[components]
+coord = { type = '::grid_2d::Coord', storage = 'flat' }
+npc = { storage = 'flat' }
+solid = { storage = 'btree' }
+tile = { type = 'u8', storage = 'btree' }
+player = { storage = 'vector' }
+speed = { type = 'u32', storage = 'vector' }
+collider = { storage = 'hash' }
+opacity = { type = 'u8', storage = 'hash' }
+
+[spatial_hash]
+solid_count = { component = 'solid', aggregate = 'count' }
+player_set = { component = 'player', aggregate = 'set' }
+opacity_total = { component = 'opacity', aggregate = 'total' }
