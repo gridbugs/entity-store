@@ -1,7 +1,5 @@
 #[macro_use]
 extern crate entity_store_helper;
-#[macro_use]
-extern crate enum_primitive;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -11,13 +9,11 @@ pub mod entity_store {
     include_entity_store!("entity_store.rs");
 }
 
-use std::marker::PhantomData;
 use grid_2d::{Size, Coord};
 use entity_store::*;
 
 fn main() {
-    let mut store = EntityStore::new(Size::new(10, 10));
-    let mut wit = EntityWit::new();
+    let (mut store, mut wit) = EntityStore::new(Size::new(10, 10));
 
     let to_free = {
         let mut some_id = None;
@@ -34,5 +30,5 @@ fn main() {
         some_id.to_free()
     };
 
-    store.free_entity_id(&mut wit, to_free);
+    store.remove_entity(&mut wit, to_free);
 }

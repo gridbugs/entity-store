@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use enum_primitive::FromPrimitive;
+use std::mem;
 use super::{constants, ComponentType};
 
 const BITMAP_BITS: usize = 64;
@@ -79,8 +79,9 @@ impl Iterator for ComponentTypeSetIter {
         let trailing = self.bitmaps[self.index].trailing_zeros();
         self.bitmaps[self.index] &= !(1 << trailing);
         let component_type_num = trailing + (self.index as u32) * BITMAP_BITS as u32;
-        let component_type = ComponentType::from_u32(component_type_num)
-            .expect("Failed to form ComponentType from ComponentTypeSetIter");
+        let component_type = unsafe {
+            mem::transmute(component_type_num)
+        };
 
         Some(component_type)
     }

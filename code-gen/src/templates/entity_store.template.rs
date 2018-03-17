@@ -1,14 +1,19 @@
-use std::marker::PhantomData;
 use super::id::{EntityId, EntityIdRaw, EntityWit, EntityIdToFree};
 use super::entity_store_raw::*;
 use super::iterators::*;
+use super::component::*;
 use super::spatial_hash::{SpatialHashTable, SpatialHashCell};
-use entity_store_helper::grid_2d::{self, Grid, Size, Coord, CoordIter};
+use super::entity_component_table::EntityComponentTable;
+use super::component_type_set::*;
+use entity_store_helper::grid_2d::{self, Size, Coord, CoordIter};
+use entity_store_helper::IdAllocator;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityStore {
     raw: EntityStoreRaw,
     spatial_hash: SpatialHashTable,
+    id_allocator: IdAllocator<EntityIdRaw>,
+    entity_component_table: EntityComponentTable,
 }
 
 pub struct EntityIdIterOfRef<'a, 'w, I: Iterator<Item=&'a EntityIdRaw>> {
@@ -115,19 +120,122 @@ impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a T)>> EntityIdAndValIterOfVal<
     }
 }
 
+pub struct ComponentDrain<'a> {
+    entity_store: &'a mut EntityStore,
+    entity_id: EntityIdRaw,
+    component_type_set_iter: ComponentTypeSetIter,
+}
+
+impl<'a> Drop for ComponentDrain<'a> {
+    fn drop(&mut self) {
+        while let Some(component_type) = self.component_type_set_iter.next() {
+            self.entity_store.raw_remove(self.entity_id, component_type);
+        }
+    }
+}
+
+impl<'a> Iterator for ComponentDrain<'a> {
+    type Item = ComponentValue;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.component_type_set_iter.next().and_then(|component_type| {
+            self.entity_store.raw_remove(self.entity_id, component_type)
+        })
+    }
+}
+
 pub type SpatialHashIter<'a> = grid_2d::Iter<'a, SpatialHashCell>;
 pub type SpatialHashCoordEnumerate<'a> = grid_2d::CoordEnumerate<'a, SpatialHashCell>;
 
 impl EntityStore {
-    pub fn new(size: Size) -> Self {
-        Self {
+    pub fn new<'w>(size: Size) -> (Self, EntityWit<'w>) {
+        (Self {
             raw: EntityStoreRaw::new(),
             spatial_hash: SpatialHashTable::new(size),
+            id_allocator: IdAllocator::new(),
+            entity_component_table: EntityComponentTable::new(),
+        }, EntityWit::new())
+    }
+
+    pub fn drain_entity_components<'a, 'w>(&'a mut self, id: EntityId<'w>) -> ComponentDrain<'a> {
+        let iter = if let Some(components) = self.entity_component_table.remove(id.raw) {
+            components.iter()
+        } else {
+            ComponentTypeSetIter::empty()
+        };
+        ComponentDrain {
+            entity_id: id.raw,
+            component_type_set_iter: iter,
+            entity_store: self,
         }
     }
 
-    pub fn free_entity_id<'a, 'w>(&'a mut self, wit: &'w mut EntityWit, id: EntityIdToFree) {
-        unimplemented!()
+    pub fn alloc_entity_id<'a, 'w>(&'a mut self, wit: &'w EntityWit) -> EntityId<'w> {
+        EntityId {
+            raw: self.id_allocator.allocate(),
+            wit: *wit,
+        }
+    }
+
+    pub fn remove_entity<'a, 'w>(&'a mut self, _wit: &'w mut EntityWit, id: EntityIdToFree) {
+        self.id_allocator.free(id.raw);
+        if let Some(components) = self.entity_component_table.remove(id.raw) {
+            for component_type in components.iter() {
+                match component_type {
+                    {% for key, component in components %}
+                        ComponentType::{{ component.name }} => {
+                            self.raw.{{ key }}.remove(&id.raw);
+                        }
+                    {% endfor %}
+                }
+            }
+        }
+    }
+
+    pub fn insert<'a, 'w>(&'a mut self, id: EntityId<'w>, value: ComponentValue) -> Option<ComponentValue> {
+        match value {
+            {% for key, component in components %}
+                {% if component.storage %}
+                    {% if component.type %}
+                        ComponentValue::{{ component.name }}(value) => {
+                            self.insert_{{ key }}(id, value).map(ComponentValue::{{ component.name }})
+                        }
+                    {% else %}
+                        ComponentValue::{{ component.name }} => {
+                            if self.insert_{{ key }}(id) {
+                                Some(ComponentValue::{{ component.name }})
+                            } else {
+                                None
+                            }
+                        }
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        }
+    }
+
+    pub fn remove<'a, 'w>(&'a mut self, id: EntityId<'w>, typ: ComponentType) -> Option<ComponentValue> {
+        self.raw_remove(id.raw, typ)
+    }
+    fn raw_remove<'a>(&'a mut self, id: EntityIdRaw, typ: ComponentType) -> Option<ComponentValue> {
+        match typ {
+            {% for key, component in components %}
+                {% if component.storage %}
+                    {% if component.type %}
+                        ComponentType::{{ component.name }} => {
+                            self.raw_remove_{{ key }}(id).map(ComponentValue::{{ component.name }})
+                        }
+                    {% else %}
+                        ComponentType::{{ component.name }} => {
+                            if self.raw_remove_{{ key }}(id) {
+                                Some(ComponentValue::{{ component.name }})
+                            } else {
+                                None
+                            }
+                        }
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        }
     }
 
     pub fn spatial_hash_width(&self) -> u32 {
@@ -205,13 +313,18 @@ impl EntityStore {
                     {% if component.tracked_by_spatial_hash %}
                         self.spatial_hash.raw_insert_{{ key }}(&self.raw, id.raw, &{{ key }});
                     {% endif %}
+                    self.entity_component_table.insert_{{ key }}(id.raw);
                     self.raw.{{ key }}.insert(id.raw, {{ key }})
                 }
                 pub fn remove_{{ key }}(&mut self, id: EntityId) -> Option<{{ component.type }}> {
+                    self.raw_remove_{{ key }}(id.raw)
+                }
+                fn raw_remove_{{ key }}(&mut self, id: EntityIdRaw) -> Option<{{ component.type }}> {
                     {% if component.tracked_by_spatial_hash %}
-                        self.spatial_hash.raw_remove_{{ key }}(&self.raw, id.raw);
+                        self.spatial_hash.raw_remove_{{ key }}(&self.raw, id);
                     {% endif %}
-                    self.raw.{{ key }}.remove(&id.raw)
+                    self.entity_component_table.remove_{{ key }}(id);
+                    self.raw.{{ key }}.remove(&id)
                 }
             {% else %}
                 pub fn contains_{{ key }}(&self, id: EntityId) -> bool {
@@ -240,13 +353,18 @@ impl EntityStore {
                     {% if component.tracked_by_spatial_hash %}
                         self.spatial_hash.raw_insert_{{ key }}(&self.raw, id.raw);
                     {% endif %}
+                    self.entity_component_table.insert_{{ key }}(id.raw);
                     self.raw.{{ key }}.insert(id.raw)
                 }
                 pub fn remove_{{ key }}(&mut self, id: EntityId) -> bool {
+                    self.raw_remove_{{ key }}(id.raw)
+                }
+                fn raw_remove_{{ key }}(&mut self, id: EntityIdRaw) -> bool {
                     {% if component.tracked_by_spatial_hash %}
-                        self.spatial_hash.raw_remove_{{ key }}(&self.raw, id.raw);
+                        self.spatial_hash.raw_remove_{{ key }}(&self.raw, id);
                     {% endif %}
-                    self.raw.{{ key }}.remove(&id.raw)
+                    self.entity_component_table.remove_{{ key }}(id);
+                    self.raw.{{ key }}.remove(&id)
                 }
             {% endif %}
 

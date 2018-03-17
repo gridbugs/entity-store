@@ -21,6 +21,10 @@ impl Renderer {
             ("flat_collections",        include_str!("templates/flat_collections.template.rs")),
             ("vec_collections",         include_str!("templates/vec_collections.template.rs")),
             ("spatial_hash",            include_str!("templates/spatial_hash.template.rs")),
+            ("component",               include_str!("templates/component.template.rs")),
+            ("component_type_set",      include_str!("templates/component_type_set.template.rs")),
+            ("constants",               include_str!("templates/constants.template.rs")),
+            ("entity_component_table",  include_str!("templates/entity_component_table.template.rs")),
         ];
 
         let module_names = templates.iter().map(|&(n, _)| n).collect();

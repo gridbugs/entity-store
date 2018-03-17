@@ -1,12 +1,11 @@
 #![allow(dead_code)]
 
-enum_from_primitive! {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[repr(u32)]
 pub enum ComponentType {
     {% for _, component in components %}
         {{ component.name }} = {{ component.index }},
     {% endfor %}
-}
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

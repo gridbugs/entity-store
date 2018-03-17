@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, BTreeMap, BTreeSet};
-use super::flat_collections::{FlatMap, FlatSet, FlatMapIter, FlatSetIter, FlatMapKeys};
-use super::vec_collections::{VecMap, VecSet, VecMapIter, VecSetIter, VecMapKeys};
+use super::flat_collections::{FlatMap, FlatSet};
+use super::vec_collections::{VecMap, VecSet};
 use super::id::EntityIdRaw;
 
 pub type EntityHashMap<T> = HashMap<EntityIdRaw, T>;

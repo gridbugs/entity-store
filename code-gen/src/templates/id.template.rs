@@ -5,8 +5,8 @@ pub(super) type EntityIdRaw = {{ id_type }};
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct EntityWit<'a>(PhantomData<&'a ()>);
 
-impl<'a> EntityWit<'a> {
-    pub fn new() -> Self {
+impl<'w> EntityWit<'w> {
+    pub(super) fn new() -> Self {
         EntityWit(PhantomData)
     }
 }

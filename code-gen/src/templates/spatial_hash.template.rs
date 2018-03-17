@@ -1,6 +1,6 @@
 use super::id::{EntityIdRaw, EntityWit, EntityId};
 use super::entity_store_raw::EntityStoreRaw;
-use entity_store_helper::grid_2d::{self, Grid, Size, Coord, CoordIter};
+use entity_store_helper::grid_2d::{Grid, Size};
 use entity_store_helper::num::One;
 use super::entity_store_raw::EntityVecSet;
 use super::entity_store::EntityIdIterOfRef;
