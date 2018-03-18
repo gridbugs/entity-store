@@ -11,7 +11,6 @@ readme = "README.md"
 
 [dependencies]
 append = "0.1"
-cgmath = "0.16"
 direction = "0.14"
 grid_2d = "0.7"
 num = { version = "0.1", default-features = false }

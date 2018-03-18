@@ -242,6 +242,7 @@ impl Spec {
             for (f, g) in izip!(fields.values(), self.spatial_hash.fields.values()) {
                 let current = by_component.entry(f.component.key.clone())
                     .or_insert_with(|| output::ByComponentInfo {
+                        has_fields: false,
                         fields: BTreeMap::new(),
                         lookup: None,
                         component: f.component.clone(),
@@ -265,6 +266,7 @@ impl Spec {
                             _ => unreachable!(),
                         }.map(|s| s.to_string());
                     }
+                    current.has_fields = true;
                 }
 
                 current.fields.insert(f.key.clone(), f.clone());

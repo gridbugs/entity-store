@@ -17,15 +17,14 @@ pub struct EntityId<'a> {
     pub(super) wit: EntityWit<'a>,
 }
 
-impl<'a> EntityId<'a> {
-    pub fn to_free(self) -> EntityIdToFree {
-        EntityIdToFree {
-            raw: self.raw,
-        }
-    }
-}
-
-#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
 pub struct EntityIdToFree {
     pub(super) raw: EntityIdRaw,
+    pub(super) free_count: u64,
+}
+
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
+pub struct EntityIdToStore {
+    pub(super) raw: EntityIdRaw,
+    pub(super) free_count: u64,
 }

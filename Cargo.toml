@@ -3,5 +3,5 @@
 members = [
     "code-gen",
     "helper",
-    "demo",
+    "tests",
 ]

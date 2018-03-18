@@ -1,4 +1,4 @@
-use super::id::{EntityId, EntityIdRaw, EntityWit, EntityIdToFree};
+use super::id::{EntityId, EntityIdRaw, EntityWit, EntityIdToFree, EntityIdToStore};
 use super::entity_store_raw::*;
 use super::iterators::*;
 use super::component::*;
@@ -13,6 +13,7 @@ pub struct EntityStore {
     raw: EntityStoreRaw,
     spatial_hash: SpatialHashTable,
     id_allocator: IdAllocator<EntityIdRaw>,
+    id_free_count: EntityFlatMap<u64>,
     entity_component_table: EntityComponentTable,
 }
 
@@ -152,8 +153,25 @@ impl EntityStore {
             raw: EntityStoreRaw::new(),
             spatial_hash: SpatialHashTable::new(size),
             id_allocator: IdAllocator::new(),
+            id_free_count: EntityFlatMap::new(),
             entity_component_table: EntityComponentTable::new(),
         }, EntityWit::new())
+    }
+
+    pub fn entity_id_to_store<'a, 'w>(&'a self, id: EntityId<'w>) -> EntityIdToStore {
+        let free_count = self.id_free_count.get(&id.raw).cloned().unwrap_or(0);
+        EntityIdToStore {
+            raw: id.raw,
+            free_count,
+        }
+    }
+
+    pub fn entity_id_to_free<'a, 'w>(&'a self, id: EntityId<'w>) -> EntityIdToFree {
+        let free_count = self.id_free_count.get(&id.raw).cloned().unwrap_or(0);
+        EntityIdToFree {
+            raw: id.raw,
+            free_count,
+        }
     }
 
     pub fn drain_entity_components<'a, 'w>(&'a mut self, id: EntityId<'w>) -> ComponentDrain<'a> {
@@ -170,14 +188,20 @@ impl EntityStore {
     }
 
     pub fn alloc_entity_id<'a, 'w>(&'a mut self, wit: &'w EntityWit) -> EntityId<'w> {
+        let raw = self.id_allocator.allocate();
         EntityId {
-            raw: self.id_allocator.allocate(),
+            raw: raw,
             wit: *wit,
         }
     }
 
     pub fn remove_entity<'a, 'w>(&'a mut self, _wit: &'w mut EntityWit, id: EntityIdToFree) {
+        let free_count = self.id_free_count.get(&id.raw).cloned().unwrap_or(0);
+        if id.free_count != free_count {
+            return;
+        }
         self.id_allocator.free(id.raw);
+        *self.id_free_count.entry(&id.raw).or_insert(0) += 1;
         if let Some(components) = self.entity_component_table.remove(id.raw) {
             for component_type in components.iter() {
                 match component_type {

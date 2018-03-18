@@ -1,34 +1,4 @@
 //! Code generator for a game data store.
-//! Data is organised into "components" - eaching having
-//! a particular rust type. "Entities" - objects in the
-//! game world - are collections of components. A
-//! component can be associated with an entity by storing
-//! the id of the entity in that component's store.
-//!
-//! A simple example:
-//!
-//! ```
-//! struct EntityStore {
-//!     position: HashMap<EntityId, ::cgmath::Vector2<f32>>,
-//!     solid: HashSet<EntityId>,
-//!     tile: HashSet<EntityId, MyTileType>,
-//! }
-//! ```
-//!
-//! Note the `solid` field is a `HashSet` rather than a
-//! `HashMap`. Sets are used to store flags with no
-//! associated data.
-//!
-//! This must be used from a build script. A simple build
-//! script looks like:
-//!
-//! ```
-//! extern crate entity_store_code_gen;
-//!
-//! fn main() {
-//!     entity_store_code_gen::generate(include_str!("spec.toml"), "entity_store.rs").unwrap()
-//! }
-//! ```
 //!
 //! Use [entity_store_helper](https://crates.io/crates/entity_store_helper)
 //! to help make use of the generated code.

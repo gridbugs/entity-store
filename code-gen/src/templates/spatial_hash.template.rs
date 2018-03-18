@@ -129,35 +129,41 @@ impl SpatialHashTable {
 
     {% for _, by_component in spatial_hash.by_component %}
         {% if by_component.component.type %}
-        pub fn raw_insert_{{ by_component.component.key }}(&mut self, entity_store: &EntityStoreRaw, id: EntityIdRaw, value: &{{ by_component.component.type}}) {
+        pub fn raw_insert_{{ by_component.component.key }}(
+            &mut self,
+            entity_store: &EntityStoreRaw,
+            id: EntityIdRaw,
+            {% if by_component.has_fields %}value{% else %}_value{% endif %}: &{{ by_component.component.type}}) {
         {% else %}
         pub fn raw_insert_{{ by_component.component.key }}(&mut self, entity_store: &EntityStoreRaw, id: EntityIdRaw) {
         {% endif %}
             if let Some(coord) = entity_store.{{ spatial_hash.position_component.key }}.get(&id) {
                 if let Some(cell) = self.grid.get_mut(*coord) {
-                    {% if by_component.lookup == "get" %}
-                        if let Some(current) = entity_store.{{ by_component.component.key }}.get(&id) {
+                    {% if by_component.has_fields %}
+                        {% if by_component.lookup == "get" %}
+                            if let Some(current) = entity_store.{{ by_component.component.key }}.get(&id) {
+                                {% for _, field in by_component.fields %}
+                                    {% if field.aggregate.type == "total" %}
+                                        let increase = value - *current;
+                                        cell.{{ field.key }} += increase;
+                                    {% endif %}
+                                {% endfor %}
+                            } else {
+                        {% else %}
+                            if !entity_store.{{ by_component.component.key }}.{{ by_component.component.contains }}(&id) {
+                        {% endif %}
+
                             {% for _, field in by_component.fields %}
                                 {% if field.aggregate.type == "total" %}
-                                    let increase = value - *current;
-                                    cell.{{ field.key }} += increase;
+                                    cell.{{ field.key }} += value;
+                                {% elif field.aggregate.type == "count" %}
+                                    cell.{{ field.key }} += {{ field.aggregate.rust_type }}::one();
+                                {% elif field.aggregate.type == "set" %}
+                                    cell.{{ field.key }}.insert(id);
                                 {% endif %}
                             {% endfor %}
-                        } else {
-                    {% else %}
-                        if !entity_store.{{ by_component.component.key }}.{{ by_component.component.contains }}(&id) {
+                        }
                     {% endif %}
-
-                        {% for _, field in by_component.fields %}
-                            {% if field.aggregate.type == "total" %}
-                                cell.{{ field.key }} += value;
-                            {% elif field.aggregate.type == "count" %}
-                                cell.{{ field.key }} += {{ field.aggregate.rust_type }}::one();
-                            {% elif field.aggregate.type == "set" %}
-                                cell.{{ field.key }}.insert(id);
-                            {% endif %}
-                        {% endfor %}
-                    }
 
                     cell.last_updated = self.last_updated;
                     self.last_updated += 1;

@@ -33,6 +33,7 @@ pub struct AggregateInfo {
 
 #[derive(Debug, Serialize)]
 pub struct ByComponentInfo {
+    pub has_fields: bool,
     pub fields: BTreeMap<String, SpatialHashField>,
     pub lookup: Option<String>,
     pub component: Component,
