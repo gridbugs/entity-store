@@ -144,8 +144,15 @@ impl SpatialHashTable {
                             if let Some(current) = entity_store.{{ by_component.component.key }}.get(&id) {
                                 {% for _, field in by_component.fields %}
                                     {% if field.aggregate.type == "total" %}
-                                        let increase = value - *current;
-                                        cell.{{ field.key }} += increase;
+
+                                        if value > current {
+                                            let increase = value - *current;
+                                            cell.{{ field.key }} += increase;
+                                        } else {
+                                            let decrease = *current - value;
+                                            cell.{{ field.key }} -= decrease;
+                                        }
+
                                     {% endif %}
                                 {% endfor %}
                             } else {

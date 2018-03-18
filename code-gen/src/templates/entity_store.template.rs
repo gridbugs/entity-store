@@ -187,7 +187,7 @@ impl EntityStore {
         }
     }
 
-    pub fn alloc_entity_id<'a, 'w>(&'a mut self, wit: &'w EntityWit) -> EntityId<'w> {
+    pub fn allocate_entity_id<'a, 'w>(&'a mut self, wit: &'w EntityWit) -> EntityId<'w> {
         let raw = self.id_allocator.allocate();
         EntityId {
             raw: raw,
