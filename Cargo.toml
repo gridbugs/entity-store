@@ -3,5 +3,7 @@
 members = [
     "code-gen",
     "helper",
-    "tests",
+
+    "tests/general",
+    "tests/empty",
 ]

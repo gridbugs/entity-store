@@ -1,0 +1,7 @@
+id_width = 16
+spatial_hash_key = 'coord'
+
+[components]
+coord = { type = '::entity_store_helper::grid_2d::Coord', storage = 'hash' }
+
+[spatial_hash]
