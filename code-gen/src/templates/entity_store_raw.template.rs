@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::collections::{HashMap, HashSet, BTreeMap, BTreeSet};
 use super::flat_collections::{FlatMap, FlatSet};
 use super::vec_collections::{VecMap, VecSet};

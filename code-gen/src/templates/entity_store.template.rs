@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::id::{EntityId, EntityIdRaw, EntityWit, EntityIdToFree, EntityIdToStore};
 use super::entity_store_raw::*;
 use super::iterators::*;

@@ -1,3 +1,7 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+
 use super::id::{EntityIdRaw, EntityWit, EntityId};
 use super::entity_store_raw::EntityStoreRaw;
 use entity_store_helper::grid_2d::{Grid, Size};
