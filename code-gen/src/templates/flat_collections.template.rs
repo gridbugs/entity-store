@@ -79,6 +79,14 @@ impl<T> FlatMap<T> {
     pub fn insert(&mut self, index: EntityIdRaw, component: T) -> Option<T> {
         self.insert_raw(index as usize, component)
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.iter().next().is_none()
+    }
+
+    pub fn len(&self) -> usize {
+        self.iter().count()
+    }
 }
 
 impl<T> Default for FlatMap<T> {
@@ -210,6 +218,10 @@ impl FlatSet {
             }
         }
         true
+    }
+
+    pub fn len(&self) -> usize {
+        self.elements.iter().map(|x| x.count_ones()).sum::<u32>() as usize
     }
 
     pub fn iter(&self) -> FlatSetIter {

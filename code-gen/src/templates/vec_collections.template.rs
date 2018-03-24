@@ -83,6 +83,14 @@ impl<K: Eq, V> VecMap<K, V> {
     pub fn first_key(&self) -> Option<&K> {
         self.elements.first().map(|&(ref k, _)| k)
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.elements.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.elements.len()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,5 +141,13 @@ impl<T: Eq> VecSet<T> {
 
     pub fn iter(&self) -> VecSetIter<T> {
         self.elements.iter()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.elements.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.elements.len()
     }
 }

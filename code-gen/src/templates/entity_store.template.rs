@@ -168,6 +168,18 @@ impl EntityStore {
         }
     }
 
+    pub fn entity_id_from_stored<'a, 'w>(&'a self, wit: &'w EntityWit<'w>, id: EntityIdToStore) -> Option<EntityId<'w>> {
+        let free_count = self.id_free_count.get(&id.raw).cloned().unwrap_or(0);
+        if free_count == id.free_count {
+            Some(EntityId {
+                raw: id.raw,
+                wit: *wit,
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn entity_id_to_free<'a, 'w>(&'a self, id: EntityId<'w>) -> EntityIdToFree {
         let free_count = self.id_free_count.get(&id.raw).cloned().unwrap_or(0);
         EntityIdToFree {
@@ -198,12 +210,12 @@ impl EntityStore {
     }
 
     pub fn remove_entity<'a, 'w>(&'a mut self, _wit: &'w mut EntityWit, id: EntityIdToFree) {
-        let free_count = self.id_free_count.get(&id.raw).cloned().unwrap_or(0);
-        if id.free_count != free_count {
+        let free_count = self.id_free_count.entry(&id.raw).or_insert(0);
+        if id.free_count != *free_count {
             return;
         }
         self.id_allocator.free(id.raw);
-        *self.id_free_count.entry(&id.raw).or_insert(0) += 1;
+        *free_count += 1;
         if let Some(components) = self.entity_component_table.remove(id.raw) {
             for component_type in components.iter() {
                 match component_type {
@@ -294,6 +306,12 @@ impl EntityStore {
 
     {% for key, component in components %}
         {% if component.storage %}
+            pub fn is_empty_{{ key }}(&self) -> bool {
+                self.raw.{{ key }}.is_empty()
+            }
+            pub fn len_{{ key }}(&self) -> usize {
+                self.raw.{{ key }}.len()
+            }
             {% if component.type %}
                 pub fn get_{{ key }}(&self, id: EntityId) -> Option<&{{ component.type }}> {
                     self.raw.{{ key }}.get(&id.raw)
