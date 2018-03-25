@@ -17,6 +17,71 @@ mod tests {
     use entity_store::*;
 
     #[test]
+    fn remove_entity() {
+
+        let (mut store, mut wit) = EntityStore::new(Size::new(10, 10));
+
+        let id_a = {
+            let id_a = store.allocate_entity_id(&wit);
+
+            store.insert_coord(id_a, Coord::new(1, 1));
+            store.insert_opacity(id_a, 3);
+
+            store.create_runtime_checked_entity_id(id_a)
+        };
+
+        {
+            let id_a = store.check_entity_id(&wit, id_a).unwrap();
+            assert_eq!(store.get_coord(id_a), Some(&Coord::new(1, 1)));
+        }
+
+        store.remove_entity(&mut wit, id_a);
+
+        {
+            assert!(store.check_entity_id(&wit, id_a).is_none());
+        }
+    }
+
+    #[test]
+    fn transfer_entity() {
+        let (mut store_a, wit_a) = EntityStore::new(Size::new(10, 10));
+        let (mut store_b, wit_b) = EntityStore::new(Size::new(10, 10));
+
+        let id_a = store_a.allocate_entity_id(&wit_a);
+
+        store_a.insert_coord(id_a, Coord::new(1, 1));
+        store_a.insert_opacity(id_a, 3);
+        store_a.insert_player(id_a);
+        store_a.insert_solid(id_a);
+
+        let id_b = store_b.allocate_entity_id(&wit_b);
+
+        assert_eq!(store_a.get_coord(id_a), Some(&Coord::new(1, 1)));
+        assert_eq!(store_a.get_opacity(id_a), Some(&3));
+        assert!(store_a.contains_player(id_a));
+        assert!(store_a.contains_solid(id_a));
+
+        assert!(store_b.get_coord(id_b).is_none());
+        assert!(store_b.get_opacity(id_b).is_none());
+        assert!(!store_b.contains_player(id_b));
+        assert!(!store_b.contains_solid(id_b));
+
+        for value in store_a.drain_entity_components(id_a) {
+            store_b.insert(id_b, value);
+        }
+
+        assert!(store_a.get_coord(id_a).is_none());
+        assert!(store_a.get_opacity(id_a).is_none());
+        assert!(!store_a.contains_player(id_a));
+        assert!(!store_a.contains_solid(id_a));
+
+        assert_eq!(store_b.get_coord(id_b), Some(&Coord::new(1, 1)));
+        assert_eq!(store_b.get_opacity(id_b), Some(&3));
+        assert!(store_b.contains_player(id_b));
+        assert!(store_b.contains_solid(id_b));
+    }
+
+    #[test]
     fn spatial_hash_maintains_aggregates() {
 
         let (mut store, wit) = EntityStore::new(Size::new(10, 10));

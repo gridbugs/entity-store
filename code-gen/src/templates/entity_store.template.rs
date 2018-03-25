@@ -1,6 +1,7 @@
 #![allow(dead_code)]
+#![allow(unused_variables)]
 
-use super::id::{EntityId, EntityIdRaw, EntityWit, EntityIdToFree, EntityIdToStore};
+use super::id::{EntityId, EntityIdRaw, EntityWit, EntityIdRuntimeChecked};
 use super::entity_store_raw::*;
 use super::iterators::*;
 use super::component::*;
@@ -160,15 +161,15 @@ impl EntityStore {
         }, EntityWit::new())
     }
 
-    pub fn entity_id_to_store<'a, 'w>(&'a self, id: EntityId<'w>) -> EntityIdToStore {
+    pub fn create_runtime_checked_entity_id<'a, 'w>(&'a self, id: EntityId<'w>) -> EntityIdRuntimeChecked {
         let free_count = self.id_free_count.get(&id.raw).cloned().unwrap_or(0);
-        EntityIdToStore {
+        EntityIdRuntimeChecked {
             raw: id.raw,
             free_count,
         }
     }
 
-    pub fn entity_id_from_stored<'a, 'w>(&'a self, wit: &'w EntityWit<'w>, id: EntityIdToStore) -> Option<EntityId<'w>> {
+    pub fn check_entity_id<'a, 'w>(&'a self, wit: &'w EntityWit<'w>, id: EntityIdRuntimeChecked) -> Option<EntityId<'w>> {
         let free_count = self.id_free_count.get(&id.raw).cloned().unwrap_or(0);
         if free_count == id.free_count {
             Some(EntityId {
@@ -177,14 +178,6 @@ impl EntityStore {
             })
         } else {
             None
-        }
-    }
-
-    pub fn entity_id_to_free<'a, 'w>(&'a self, id: EntityId<'w>) -> EntityIdToFree {
-        let free_count = self.id_free_count.get(&id.raw).cloned().unwrap_or(0);
-        EntityIdToFree {
-            raw: id.raw,
-            free_count,
         }
     }
 
@@ -209,7 +202,7 @@ impl EntityStore {
         }
     }
 
-    pub fn remove_entity<'a, 'w>(&'a mut self, _wit: &'w mut EntityWit, id: EntityIdToFree) {
+    pub fn remove_entity<'a, 'w>(&'a mut self, wit: &'w mut EntityWit, id: EntityIdRuntimeChecked) {
         let free_count = self.id_free_count.entry(&id.raw).or_insert(0);
         if id.free_count != *free_count {
             return;

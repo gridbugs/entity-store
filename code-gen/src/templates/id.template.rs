@@ -24,13 +24,7 @@ impl<'a> EntityId<'a> {
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
-pub struct EntityIdToFree {
-    pub(super) raw: EntityIdRaw,
-    pub(super) free_count: u64,
-}
-
-#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
-pub struct EntityIdToStore {
+pub struct EntityIdRuntimeChecked {
     pub(super) raw: EntityIdRaw,
     pub(super) free_count: u64,
 }
