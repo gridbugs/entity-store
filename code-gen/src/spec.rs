@@ -100,8 +100,10 @@ impl Component {
                     }
                 },
                 map_iter_wrapper: s.to_map_iter_wrapper().to_string(),
+                map_iter_mut_wrapper: s.to_map_iter_mut_wrapper().to_string(),
                 set_iter_wrapper: s.to_set_iter_wrapper().to_string(),
                 map_iter: s.to_map_iter().to_string(),
+                map_iter_mut: s.to_map_iter_mut().to_string(),
                 map_keys: s.to_map_keys().to_string(),
                 set_iter: s.to_set_iter().to_string(),
             }

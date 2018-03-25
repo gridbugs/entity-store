@@ -62,6 +62,15 @@ impl StorageType {
         }
     }
 
+    pub fn to_map_iter_mut_wrapper(self) -> &'static str {
+        match self {
+            Vector => "EntityIdAndValIterMutOfRef",
+            Flat => "EntityIdAndValIterMutOfVal",
+            Hash => "EntityIdAndValIterMutOfRef",
+            BTree => "EntityIdAndValIterMutOfRef",
+        }
+    }
+
     pub fn to_set_iter_wrapper(self) -> &'static str {
         match self {
             Vector => "EntityIdIterOfRef",
@@ -77,6 +86,14 @@ impl StorageType {
             Flat => "EntityFlatMapIter",
             Hash => "EntityHashMapIter",
             BTree => "EntityBTreeMapIter",
+        }
+    }
+    pub fn to_map_iter_mut(self) -> &'static str {
+        match self {
+            Vector => "EntityVecMapIterMut",
+            Flat => "EntityFlatMapIterMut",
+            Hash => "EntityHashMapIterMut",
+            BTree => "EntityBTreeMapIterMut",
         }
     }
     pub fn to_map_keys(self) -> &'static str {

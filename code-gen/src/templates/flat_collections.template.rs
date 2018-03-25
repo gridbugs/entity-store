@@ -47,6 +47,12 @@ impl<T> FlatMap<T> {
         }
     }
 
+    pub fn iter_mut(&mut self) -> FlatMapIterMut<T> {
+        FlatMapIterMut {
+            iter: self.elements.iter_mut().enumerate(),
+        }
+    }
+
     pub fn keys(&self) -> FlatMapKeys<T> {
         FlatMapKeys(self.iter())
     }
@@ -104,6 +110,23 @@ impl<'a, T: 'a> Iterator for FlatMapIter<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         while let Some((index, maybe_value)) = self.iter.next() {
             if let Some(value) = maybe_value.as_ref() {
+                return Some((index as EntityIdRaw, value));
+            }
+        }
+
+        None
+    }
+}
+
+pub struct FlatMapIterMut<'a, T: 'a> {
+    iter: iter::Enumerate<slice::IterMut<'a, Option<T>>>,
+}
+
+impl<'a, T: 'a> Iterator for FlatMapIterMut<'a, T> {
+    type Item = (EntityIdRaw, &'a mut T);
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some((index, maybe_value)) = self.iter.next() {
+            if let Some(value) = maybe_value.as_mut() {
                 return Some((index as EntityIdRaw, value));
             }
         }

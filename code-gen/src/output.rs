@@ -6,9 +6,11 @@ pub struct StorageInfo {
     pub typ: String,
     pub rust_type: String,
     pub map_iter_wrapper: String,
+    pub map_iter_mut_wrapper: String,
     pub set_iter_wrapper: String,
     pub set_iter: String,
     pub map_iter: String,
+    pub map_iter_mut: String,
     pub map_keys: String,
 }
 

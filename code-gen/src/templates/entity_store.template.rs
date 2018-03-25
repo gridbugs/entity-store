@@ -72,6 +72,32 @@ impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a T)>> EntityIdAndValIterOf
     }
 }
 
+pub struct EntityIdAndValIterMutOfRef<'a, 'w, T: 'a, I: Iterator<Item=(&'a EntityIdRaw, &'a mut T)>> {
+    iter: I,
+    wit: &'w EntityWit<'w>,
+}
+
+impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a mut T)>> Iterator for EntityIdAndValIterMutOfRef<'a, 'w, T, I> {
+    type Item = (EntityId<'w>, &'a mut T);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(raw, t)| {
+            (EntityId {
+                raw: *raw,
+                wit: *self.wit,
+            }, t)
+        })
+    }
+}
+
+impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a mut T)>> EntityIdAndValIterMutOfRef<'a, 'w, T, I> {
+    fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
+        EntityIdAndValIterMutOfRef {
+            iter,
+            wit,
+        }
+    }
+}
+
 pub struct EntityIdIterOfVal<'w, I: Iterator<Item=EntityIdRaw>> {
     iter: I,
     wit: &'w EntityWit<'w>,
@@ -118,6 +144,32 @@ impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a T)>> Iterator for EntityIdAnd
 impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a T)>> EntityIdAndValIterOfVal<'a, 'w, T, I> {
     fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
         EntityIdAndValIterOfVal {
+            iter,
+            wit,
+        }
+    }
+}
+
+pub struct EntityIdAndValIterMutOfVal<'a, 'w, T: 'a, I: Iterator<Item=(EntityIdRaw, &'a mut T)>> {
+    iter: I,
+    wit: &'w EntityWit<'w>
+}
+
+impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a mut T)>> Iterator for EntityIdAndValIterMutOfVal<'a, 'w, T, I> {
+    type Item = (EntityId<'w>, &'a mut T);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(raw, t)| {
+            (EntityId {
+                raw,
+                wit: *self.wit,
+            }, t)
+        })
+    }
+}
+
+impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a mut T)>> EntityIdAndValIterMutOfVal<'a, 'w, T, I> {
+    fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
+        EntityIdAndValIterMutOfVal {
             iter,
             wit,
         }
@@ -315,6 +367,10 @@ impl EntityStore {
                 pub fn iter_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.storage.map_iter_wrapper }}<'a, 'w, {{ component.type }}, {{ component.storage.map_iter }}<{{ component.type }}>> {
                     {{ component.storage.map_iter_wrapper }}::new(self.raw.{{ key }}.iter(), wit)
                 }
+                pub fn iter_mut_{{ key }}<'a, 'w>(&'a mut self, wit: &'w EntityWit<'w>) -> {{ component.storage.map_iter_mut_wrapper }}<'a, 'w, {{ component.type }}, {{ component.storage.map_iter_mut }}<{{ component.type }}>> {
+                    {{ component.storage.map_iter_mut_wrapper }}::new(self.raw.{{ key }}.iter_mut(), wit)
+                }
+
                 pub fn ids_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.storage.set_iter_wrapper }}<
                 {% if component.storage.set_iter_wrapper != "EntityIdIterOfVal" %}
                     'a,

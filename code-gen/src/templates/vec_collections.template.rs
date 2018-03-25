@@ -12,10 +12,21 @@ pub struct VecMapIter<'a, K: 'a, V: 'a> {
     iter: slice::Iter<'a, (K, V)>,
 }
 
+pub struct VecMapIterMut<'a, K: 'a, V: 'a> {
+    iter: slice::IterMut<'a, (K, V)>,
+}
+
 impl<'a, K, V> Iterator for VecMapIter<'a, K, V> {
     type Item = (&'a K, &'a V);
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|&(ref k, ref v)| (k, v))
+    }
+}
+
+impl<'a, K, V> Iterator for VecMapIterMut<'a, K, V> {
+    type Item = (&'a K, &'a mut V);
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|&mut (ref k, ref mut v)| (k, v))
     }
 }
 
@@ -69,6 +80,12 @@ impl<K: Eq, V> VecMap<K, V> {
     pub fn iter(&self) -> VecMapIter<K, V> {
         VecMapIter {
             iter: self.elements.iter(),
+        }
+    }
+
+    pub fn iter_mut(&mut self) -> VecMapIterMut<K, V> {
+        VecMapIterMut {
+            iter: self.elements.iter_mut(),
         }
     }
 
