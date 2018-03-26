@@ -1,22 +1,20 @@
 #![allow(dead_code)]
 
-use std::marker::PhantomData;
-
 pub type EntityIdRaw = {{ id_type }};
 
-#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct EntityWit<'a>(PhantomData<&'a ()>);
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
+pub struct EntityWit(());
 
-impl<'w> EntityWit<'w> {
+impl EntityWit {
     pub(super) fn new() -> Self {
-        EntityWit(PhantomData)
+        EntityWit(())
     }
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct EntityId<'a> {
     pub(super) raw: EntityIdRaw,
-    pub(super) wit: EntityWit<'a>,
+    pub(super) wit: &'a EntityWit,
 }
 
 impl<'a> EntityId<'a> {

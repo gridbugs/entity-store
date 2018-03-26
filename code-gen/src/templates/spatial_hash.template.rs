@@ -22,14 +22,14 @@ impl SpatialHashCellEntityIdSet {
     fn remove(&mut self, id: &EntityIdRaw) {
         self.set.remove(id);
     }
-    pub fn iter<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> EntityIdIterOfRef<'a, 'w, EntityVecSetIter<'a>> {
+    pub fn iter<'a, 'w>(&'a self, wit: &'w EntityWit) -> EntityIdIterOfRef<'a, 'w, EntityVecSetIter<'a>> {
         EntityIdIterOfRef::new(self.set.iter(), wit)
     }
-    pub fn any<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> Option<EntityId<'w>> {
+    pub fn any<'a, 'w>(&'a self, wit: &'w EntityWit) -> Option<EntityId<'w>> {
         self.set.first().map(|&raw| {
             EntityId {
                 raw,
-                wit: *wit,
+                wit: wit,
             }
         })
     }

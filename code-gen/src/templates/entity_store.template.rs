@@ -23,7 +23,7 @@ pub struct EntityStore {
 
 pub struct EntityIdIterOfRef<'a, 'w, I: Iterator<Item=&'a EntityIdRaw>> {
     iter: I,
-    wit: &'w EntityWit<'w>,
+    wit: &'w EntityWit,
 }
 
 impl<'a, 'w, I: Iterator<Item=&'a EntityIdRaw>> Iterator for EntityIdIterOfRef<'a, 'w, I> {
@@ -32,14 +32,14 @@ impl<'a, 'w, I: Iterator<Item=&'a EntityIdRaw>> Iterator for EntityIdIterOfRef<'
         self.iter.next().map(|raw| {
             EntityId {
                 raw: *raw,
-                wit: *self.wit,
+                wit: self.wit,
             }
         })
     }
 }
 
 impl<'a, 'w, I: Iterator<Item=&'a EntityIdRaw>> EntityIdIterOfRef<'a, 'w, I> {
-    pub(super) fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
+    pub(super) fn new(iter: I, wit: &'w EntityWit) -> Self {
         EntityIdIterOfRef {
             iter,
             wit,
@@ -49,7 +49,7 @@ impl<'a, 'w, I: Iterator<Item=&'a EntityIdRaw>> EntityIdIterOfRef<'a, 'w, I> {
 
 pub struct EntityIdAndValIterOfRef<'a, 'w, T: 'a, I: Iterator<Item=(&'a EntityIdRaw, &'a T)>> {
     iter: I,
-    wit: &'w EntityWit<'w>,
+    wit: &'w EntityWit,
 }
 
 impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a T)>> Iterator for EntityIdAndValIterOfRef<'a, 'w, T, I> {
@@ -58,14 +58,14 @@ impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a T)>> Iterator for EntityI
         self.iter.next().map(|(raw, t)| {
             (EntityId {
                 raw: *raw,
-                wit: *self.wit,
+                wit: self.wit,
             }, t)
         })
     }
 }
 
 impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a T)>> EntityIdAndValIterOfRef<'a, 'w, T, I> {
-    fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
+    fn new(iter: I, wit: &'w EntityWit) -> Self {
         EntityIdAndValIterOfRef {
             iter,
             wit,
@@ -75,7 +75,7 @@ impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a T)>> EntityIdAndValIterOf
 
 pub struct EntityIdAndValIterMutOfRef<'a, 'w, T: 'a, I: Iterator<Item=(&'a EntityIdRaw, &'a mut T)>> {
     iter: I,
-    wit: &'w EntityWit<'w>,
+    wit: &'w EntityWit,
 }
 
 impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a mut T)>> Iterator for EntityIdAndValIterMutOfRef<'a, 'w, T, I> {
@@ -84,14 +84,14 @@ impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a mut T)>> Iterator for Ent
         self.iter.next().map(|(raw, t)| {
             (EntityId {
                 raw: *raw,
-                wit: *self.wit,
+                wit: self.wit,
             }, t)
         })
     }
 }
 
 impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a mut T)>> EntityIdAndValIterMutOfRef<'a, 'w, T, I> {
-    fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
+    fn new(iter: I, wit: &'w EntityWit) -> Self {
         EntityIdAndValIterMutOfRef {
             iter,
             wit,
@@ -101,7 +101,7 @@ impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a mut T)>> EntityIdAndValIt
 
 pub struct EntityIdIterOfVal<'a, 'w, I: Iterator<Item=EntityIdRaw>> {
     iter: I,
-    wit: &'w EntityWit<'w>,
+    wit: &'w EntityWit,
     phantom: PhantomData<&'a ()>,
 }
 
@@ -111,14 +111,14 @@ impl<'a, 'w, I: Iterator<Item=EntityIdRaw>> Iterator for EntityIdIterOfVal<'a, '
         self.iter.next().map(|raw| {
             EntityId {
                 raw,
-                wit: *self.wit,
+                wit: self.wit,
             }
         })
     }
 }
 
 impl<'a, 'w, I: Iterator<Item=EntityIdRaw>> EntityIdIterOfVal<'a, 'w, I> {
-    fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
+    fn new(iter: I, wit: &'w EntityWit) -> Self {
         Self {
             iter,
             wit,
@@ -129,7 +129,7 @@ impl<'a, 'w, I: Iterator<Item=EntityIdRaw>> EntityIdIterOfVal<'a, 'w, I> {
 
 pub struct EntityIdAndValIterOfVal<'a, 'w, T: 'a, I: Iterator<Item=(EntityIdRaw, &'a T)>> {
     iter: I,
-    wit: &'w EntityWit<'w>
+    wit: &'w EntityWit
 }
 
 impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a T)>> Iterator for EntityIdAndValIterOfVal<'a, 'w, T, I> {
@@ -138,14 +138,14 @@ impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a T)>> Iterator for EntityIdAnd
         self.iter.next().map(|(raw, t)| {
             (EntityId {
                 raw,
-                wit: *self.wit,
+                wit: self.wit,
             }, t)
         })
     }
 }
 
 impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a T)>> EntityIdAndValIterOfVal<'a, 'w, T, I> {
-    fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
+    fn new(iter: I, wit: &'w EntityWit) -> Self {
         EntityIdAndValIterOfVal {
             iter,
             wit,
@@ -155,7 +155,7 @@ impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a T)>> EntityIdAndValIterOfVal<
 
 pub struct EntityIdAndValIterMutOfVal<'a, 'w, T: 'a, I: Iterator<Item=(EntityIdRaw, &'a mut T)>> {
     iter: I,
-    wit: &'w EntityWit<'w>
+    wit: &'w EntityWit
 }
 
 impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a mut T)>> Iterator for EntityIdAndValIterMutOfVal<'a, 'w, T, I> {
@@ -164,14 +164,14 @@ impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a mut T)>> Iterator for EntityI
         self.iter.next().map(|(raw, t)| {
             (EntityId {
                 raw,
-                wit: *self.wit,
+                wit: self.wit,
             }, t)
         })
     }
 }
 
 impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a mut T)>> EntityIdAndValIterMutOfVal<'a, 'w, T, I> {
-    fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
+    fn new(iter: I, wit: &'w EntityWit) -> Self {
         EntityIdAndValIterMutOfVal {
             iter,
             wit,
@@ -221,7 +221,7 @@ pub type SpatialHashCoordEnumerate<'a> = grid_2d::CoordEnumerate<'a, SpatialHash
 {% endfor %}
 
 impl EntityStore {
-    pub fn new<'w>(size: Size) -> (Self, EntityWit<'w>) {
+    pub fn new<'w>(size: Size) -> (Self, EntityWit) {
         (Self {
             raw: EntityStoreRaw::new(),
             spatial_hash: SpatialHashTable::new(size),
@@ -239,12 +239,12 @@ impl EntityStore {
         }
     }
 
-    pub fn check_entity_id<'a, 'w>(&'a self, wit: &'w EntityWit<'w>, id: EntityIdRuntimeChecked) -> Option<EntityId<'w>> {
+    pub fn check_entity_id<'a, 'w>(&'a self, wit: &'w EntityWit, id: EntityIdRuntimeChecked) -> Option<EntityId<'w>> {
         let free_count = self.id_free_count.get(&id.raw).cloned().unwrap_or(0);
         if free_count == id.free_count {
             Some(EntityId {
                 raw: id.raw,
-                wit: *wit,
+                wit: wit,
             })
         } else {
             None
@@ -268,7 +268,7 @@ impl EntityStore {
         let raw = self.id_allocator.allocate();
         EntityId {
             raw: raw,
-            wit: *wit,
+            wit: wit,
         }
     }
 
@@ -382,34 +382,34 @@ impl EntityStore {
                 pub fn contains_{{ key }}(&self, id: EntityId) -> bool {
                     self.raw.{{ key }}.contains_key(&id.raw)
                 }
-                pub fn iter_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.iter_alias }}<'a, 'w> {
+                pub fn iter_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit) -> {{ component.iter_alias }}<'a, 'w> {
                     {{ component.storage.map_iter_wrapper }}::new(self.raw.{{ key }}.iter(), wit)
                 }
-                pub fn iter_mut_{{ key }}<'a, 'w>(&'a mut self, wit: &'w EntityWit<'w>) -> {{ component.iter_mut_alias }}<'a, 'w> {
+                pub fn iter_mut_{{ key }}<'a, 'w>(&'a mut self, wit: &'w EntityWit) -> {{ component.iter_mut_alias }}<'a, 'w> {
                     {{ component.storage.map_iter_mut_wrapper }}::new(self.raw.{{ key }}.iter_mut(), wit)
                 }
 
-                pub fn ids_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.id_iter_alias }}<'a, 'w> {
+                pub fn ids_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit) -> {{ component.id_iter_alias }}<'a, 'w> {
                     {{ component.storage.set_iter_wrapper }}::new(self.raw.{{ key }}.keys(), wit)
                 }
-                pub fn any_{{ key }}<'w>(&self, wit: &'w EntityWit<'w>) -> Option<(EntityId<'w>, &{{ component.type }})> {
+                pub fn any_{{ key }}<'w>(&self, wit: &'w EntityWit) -> Option<(EntityId<'w>, &{{ component.type }})> {
                     {% if component.storage.type == "vector" %}
                         self.raw.{{ key }}.first().map(|(&raw, value)| {
                             (EntityId {
                                 raw,
-                                wit: *wit,
+                                wit: wit,
                             }, value)
                         })
                     {% else %}
                         self.iter_{{ key }}(wit).next()
                     {% endif %}
                 }
-                pub fn any_id_{{ key }}<'w>(&self, wit: &'w EntityWit<'w>) -> Option<EntityId<'w>> {
+                pub fn any_id_{{ key }}<'w>(&self, wit: &'w EntityWit) -> Option<EntityId<'w>> {
                     {% if component.storage.type == "vector" %}
                         self.raw.{{ key }}.first_key().map(|&raw| {
                             EntityId {
                                 raw,
-                                wit: *wit,
+                                wit: wit,
                             }
                         })
                     {% else %}
@@ -437,15 +437,15 @@ impl EntityStore {
                 pub fn contains_{{ key }}(&self, id: EntityId) -> bool {
                     self.raw.{{ key }}.contains(&id.raw)
                 }
-                pub fn ids_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.id_iter_alias }}<'a, 'w> {
+                pub fn ids_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit) -> {{ component.id_iter_alias }}<'a, 'w> {
                     {{ component.storage.set_iter_wrapper }}::new(self.raw.{{ key }}.iter(), wit)
                 }
-                pub fn any_{{ key }}<'w>(&self, wit: &'w EntityWit<'w>) -> Option<EntityId<'w>> {
+                pub fn any_{{ key }}<'w>(&self, wit: &'w EntityWit) -> Option<EntityId<'w>> {
                     {% if component.storage.type == "vector" %}
                         self.raw.{{ key }}.first().map(|&raw| {
                             EntityId {
                                 raw,
-                                wit: *wit,
+                                wit: wit,
                             }
                         })
                     {% else %}
