@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::collections::{hash_map, hash_set, btree_map, btree_set};
 use super::flat_collections::{FlatMapIter, FlatMapIterMut, FlatSetIter, FlatMapKeys};
 use super::vec_collections::{VecMapIter, VecMapIterMut, VecSetIter, VecMapKeys};

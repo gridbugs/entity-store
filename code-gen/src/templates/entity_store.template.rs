@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use std::marker::PhantomData;
 use super::id::{EntityId, EntityIdRaw, EntityWit, EntityIdRuntimeChecked};
 use super::entity_store_raw::*;
 use super::iterators::*;
@@ -98,12 +99,13 @@ impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a mut T)>> EntityIdAndValIt
     }
 }
 
-pub struct EntityIdIterOfVal<'w, I: Iterator<Item=EntityIdRaw>> {
+pub struct EntityIdIterOfVal<'a, 'w, I: Iterator<Item=EntityIdRaw>> {
     iter: I,
     wit: &'w EntityWit<'w>,
+    phantom: PhantomData<&'a ()>,
 }
 
-impl<'w, I: Iterator<Item=EntityIdRaw>> Iterator for EntityIdIterOfVal<'w, I> {
+impl<'a, 'w, I: Iterator<Item=EntityIdRaw>> Iterator for EntityIdIterOfVal<'a, 'w, I> {
     type Item = EntityId<'w>;
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|raw| {
@@ -115,11 +117,12 @@ impl<'w, I: Iterator<Item=EntityIdRaw>> Iterator for EntityIdIterOfVal<'w, I> {
     }
 }
 
-impl<'w, I: Iterator<Item=EntityIdRaw>> EntityIdIterOfVal<'w, I> {
+impl<'a, 'w, I: Iterator<Item=EntityIdRaw>> EntityIdIterOfVal<'a, 'w, I> {
     fn new(iter: I, wit: &'w EntityWit<'w>) -> Self {
         Self {
             iter,
             wit,
+            phantom: PhantomData,
         }
     }
 }
@@ -201,6 +204,21 @@ impl<'a> Iterator for ComponentDrain<'a> {
 
 pub type SpatialHashIter<'a> = grid_2d::Iter<'a, SpatialHashCell>;
 pub type SpatialHashCoordEnumerate<'a> = grid_2d::CoordEnumerate<'a, SpatialHashCell>;
+
+
+{% for key, component in components %}
+    {% if component.type %}
+        pub type {{ component.id_iter_alias}}<'a, 'w> =
+            {{ component.storage.set_iter_wrapper }}<'a, 'w, {{ component.storage.map_keys }}<'a, {{ component.type }}>>;
+        pub type {{ component.iter_alias}}<'a, 'w> =
+            {{ component.storage.map_iter_wrapper }}<'a, 'w, {{ component.type }}, {{ component.storage.map_iter }}<'a, {{ component.type }}>>;
+        pub type {{ component.iter_mut_alias}}<'a, 'w> =
+{{ component.storage.map_iter_mut_wrapper }}<'a, 'w, {{ component.type }}, {{ component.storage.map_iter_mut }}<'a, {{ component.type }}>>;
+    {% else %}
+        pub type {{ component.id_iter_alias}}<'a, 'w> =
+            {{ component.storage.set_iter_wrapper }}<'a, 'w, {{ component.storage.set_iter }}<'a>>;
+    {% endif %}
+{% endfor %}
 
 impl EntityStore {
     pub fn new<'w>(size: Size) -> (Self, EntityWit<'w>) {
@@ -364,18 +382,14 @@ impl EntityStore {
                 pub fn contains_{{ key }}(&self, id: EntityId) -> bool {
                     self.raw.{{ key }}.contains_key(&id.raw)
                 }
-                pub fn iter_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.storage.map_iter_wrapper }}<'a, 'w, {{ component.type }}, {{ component.storage.map_iter }}<{{ component.type }}>> {
+                pub fn iter_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.iter_alias }}<'a, 'w> {
                     {{ component.storage.map_iter_wrapper }}::new(self.raw.{{ key }}.iter(), wit)
                 }
-                pub fn iter_mut_{{ key }}<'a, 'w>(&'a mut self, wit: &'w EntityWit<'w>) -> {{ component.storage.map_iter_mut_wrapper }}<'a, 'w, {{ component.type }}, {{ component.storage.map_iter_mut }}<{{ component.type }}>> {
+                pub fn iter_mut_{{ key }}<'a, 'w>(&'a mut self, wit: &'w EntityWit<'w>) -> {{ component.iter_mut_alias }}<'a, 'w> {
                     {{ component.storage.map_iter_mut_wrapper }}::new(self.raw.{{ key }}.iter_mut(), wit)
                 }
 
-                pub fn ids_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.storage.set_iter_wrapper }}<
-                {% if component.storage.set_iter_wrapper != "EntityIdIterOfVal" %}
-                    'a,
-                {% endif %}
-                'w, {{ component.storage.map_keys }}<{{ component.type }}>> {
+                pub fn ids_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.id_iter_alias }}<'a, 'w> {
                     {{ component.storage.set_iter_wrapper }}::new(self.raw.{{ key }}.keys(), wit)
                 }
                 pub fn any_{{ key }}<'w>(&self, wit: &'w EntityWit<'w>) -> Option<(EntityId<'w>, &{{ component.type }})> {
@@ -423,11 +437,7 @@ impl EntityStore {
                 pub fn contains_{{ key }}(&self, id: EntityId) -> bool {
                     self.raw.{{ key }}.contains(&id.raw)
                 }
-                pub fn iter_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.storage.set_iter_wrapper }}<
-                {% if component.storage.set_iter_wrapper != "EntityIdIterOfVal" %}
-                    'a,
-                {% endif %}
-                    'w, {{ component.storage.set_iter }}> {
+                pub fn ids_{{ key }}<'a, 'w>(&'a self, wit: &'w EntityWit<'w>) -> {{ component.id_iter_alias }}<'a, 'w> {
                     {{ component.storage.set_iter_wrapper }}::new(self.raw.{{ key }}.iter(), wit)
                 }
                 pub fn any_{{ key }}<'w>(&self, wit: &'w EntityWit<'w>) -> Option<EntityId<'w>> {
@@ -439,7 +449,7 @@ impl EntityStore {
                             }
                         })
                     {% else %}
-                        self.iter_{{ key }}(wit).next()
+                        self.ids_{{ key }}(wit).next()
                     {% endif %}
                 }
                 pub fn insert_{{ key }}(&mut self, id: EntityId) -> bool {

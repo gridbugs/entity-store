@@ -24,6 +24,9 @@ pub struct Component {
     pub key: String,
     pub contains: String,
     pub tracked_by_spatial_hash: bool,
+    pub iter_alias: String,
+    pub id_iter_alias: String,
+    pub iter_mut_alias: String,
 }
 
 #[derive(Debug, Clone, Serialize)]

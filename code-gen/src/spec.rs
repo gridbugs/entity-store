@@ -55,6 +55,7 @@ fn name_from_field_name(field_name: &str) -> String {
     itertools::join(with_first_capitalised, "")
 }
 
+
 fn valid_storage_type_strings() -> Vec<String> {
     storage_type::ALL.iter().map(|s| s.to_str().to_string()).collect()
 }
@@ -118,6 +119,9 @@ impl Component {
             index,
             contains: if self.typ.is_some() { "contains_key".to_string() } else { "contains".to_string() },
             tracked_by_spatial_hash,
+            iter_alias: format!("ComponentIter{}", self.name.clone()),
+            id_iter_alias: format!("EntityIds{}", self.name.clone()),
+            iter_mut_alias: format!("ComponentMutIter{}", self.name.clone()),
         }
     }
 }

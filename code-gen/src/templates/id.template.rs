@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::marker::PhantomData;
 
 pub type EntityIdRaw = {{ id_type }};
