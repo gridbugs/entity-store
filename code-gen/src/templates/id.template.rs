@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::marker::PhantomData;
+
 pub type EntityIdRaw = {{ id_type }};
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
@@ -12,12 +14,12 @@ impl EntityWit {
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct EntityId<'a> {
+pub struct EntityId<'w> {
     pub(super) raw: EntityIdRaw,
-    pub(super) wit: &'a EntityWit,
+    pub(super) phantom: PhantomData<&'w ()>,
 }
 
-impl<'a> EntityId<'a> {
+impl<'w> EntityId<'w> {
     pub fn raw(self) -> EntityIdRaw {
         self.raw
     }

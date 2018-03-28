@@ -2,6 +2,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 
+use std::marker::PhantomData;
 use super::id::{EntityIdRaw, EntityWit, EntityId};
 use super::entity_store_raw::EntityStoreRaw;
 use entity_store_helper::grid_2d::{Grid, Size};
@@ -29,7 +30,7 @@ impl SpatialHashCellEntityIdSet {
         self.set.first().map(|&raw| {
             EntityId {
                 raw,
-                wit: wit,
+                phantom: PhantomData,
             }
         })
     }

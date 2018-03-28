@@ -32,7 +32,7 @@ impl<'a, 'w, I: Iterator<Item=&'a EntityIdRaw>> Iterator for EntityIdIterOfRef<'
         self.iter.next().map(|raw| {
             EntityId {
                 raw: *raw,
-                wit: self.wit,
+                phantom: PhantomData,
             }
         })
     }
@@ -58,7 +58,7 @@ impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a T)>> Iterator for EntityI
         self.iter.next().map(|(raw, t)| {
             (EntityId {
                 raw: *raw,
-                wit: self.wit,
+                phantom: PhantomData,
             }, t)
         })
     }
@@ -84,7 +84,7 @@ impl<'a, 'w, T, I: Iterator<Item=(&'a EntityIdRaw, &'a mut T)>> Iterator for Ent
         self.iter.next().map(|(raw, t)| {
             (EntityId {
                 raw: *raw,
-                wit: self.wit,
+                phantom: PhantomData,
             }, t)
         })
     }
@@ -111,7 +111,7 @@ impl<'a, 'w, I: Iterator<Item=EntityIdRaw>> Iterator for EntityIdIterOfVal<'a, '
         self.iter.next().map(|raw| {
             EntityId {
                 raw,
-                wit: self.wit,
+                phantom: PhantomData,
             }
         })
     }
@@ -138,7 +138,7 @@ impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a T)>> Iterator for EntityIdAnd
         self.iter.next().map(|(raw, t)| {
             (EntityId {
                 raw,
-                wit: self.wit,
+                phantom: PhantomData,
             }, t)
         })
     }
@@ -164,7 +164,7 @@ impl<'a, 'w, T, I: Iterator<Item=(EntityIdRaw, &'a mut T)>> Iterator for EntityI
         self.iter.next().map(|(raw, t)| {
             (EntityId {
                 raw,
-                wit: self.wit,
+                phantom: PhantomData,
             }, t)
         })
     }
@@ -244,7 +244,7 @@ impl EntityStore {
         if free_count == id.free_count {
             Some(EntityId {
                 raw: id.raw,
-                wit: wit,
+                phantom: PhantomData,
             })
         } else {
             None
@@ -268,7 +268,7 @@ impl EntityStore {
         let raw = self.id_allocator.allocate();
         EntityId {
             raw: raw,
-            wit: wit,
+            phantom: PhantomData,
         }
     }
 
@@ -397,7 +397,7 @@ impl EntityStore {
                         self.raw.{{ key }}.first().map(|(&raw, value)| {
                             (EntityId {
                                 raw,
-                                wit: wit,
+                                phantom: PhantomData,
                             }, value)
                         })
                     {% else %}
@@ -409,7 +409,7 @@ impl EntityStore {
                         self.raw.{{ key }}.first_key().map(|&raw| {
                             EntityId {
                                 raw,
-                                wit: wit,
+                                phantom: PhantomData,
                             }
                         })
                     {% else %}
@@ -445,7 +445,7 @@ impl EntityStore {
                         self.raw.{{ key }}.first().map(|&raw| {
                             EntityId {
                                 raw,
-                                wit: wit,
+                                phantom: PhantomData,
                             }
                         })
                     {% else %}
