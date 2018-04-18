@@ -6,16 +6,21 @@ use super::id::{EntityId, EntityIdRaw, EntityWit, EntityIdRuntimeChecked};
 use super::entity_store_raw::*;
 use super::iterators::*;
 use super::component::*;
+
+{% if spatial_hash %}
 use super::spatial_hash::{SpatialHashTable, SpatialHashCell};
+use entity_store_helper::grid_2d::{self, Size, Coord, CoordIter};
+{% endif %}
 use super::entity_component_table::EntityComponentTable;
 use super::component_type_set::*;
-use entity_store_helper::grid_2d::{self, Size, Coord, CoordIter};
 use entity_store_helper::IdAllocator;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntityStore {
     raw: EntityStoreRaw,
+{% if spatial_hash %}
     spatial_hash: SpatialHashTable,
+{% endif %}
     id_allocator: IdAllocator<EntityIdRaw>,
     id_free_count: EntityFlatMap<u64>,
     entity_component_table: EntityComponentTable,
@@ -202,9 +207,10 @@ impl<'a> Iterator for ComponentDrain<'a> {
     }
 }
 
+{% if spatial_hash %}
 pub type SpatialHashIter<'a> = grid_2d::Iter<'a, SpatialHashCell>;
 pub type SpatialHashCoordEnumerate<'a> = grid_2d::CoordEnumerate<'a, SpatialHashCell>;
-
+{% endif %}
 
 {% for key, component in components %}
     {% if component.type %}
@@ -221,10 +227,16 @@ pub type SpatialHashCoordEnumerate<'a> = grid_2d::CoordEnumerate<'a, SpatialHash
 {% endfor %}
 
 impl EntityStore {
-    pub fn new<'w>(size: Size) -> (Self, EntityWit) {
+    pub fn new<'w>(
+{% if spatial_hash %}
+        size: Size
+{% endif %}
+    ) -> (Self, EntityWit) {
         (Self {
             raw: EntityStoreRaw::new(),
+            {% if spatial_hash %}
             spatial_hash: SpatialHashTable::new(size),
+            {% endif %}
             id_allocator: IdAllocator::new(),
             id_free_count: EntityFlatMap::new(),
             entity_component_table: EntityComponentTable::new(),
@@ -339,6 +351,7 @@ impl EntityStore {
         }
     }
 
+{% if spatial_hash %}
     pub fn spatial_hash_width(&self) -> u32 {
         self.spatial_hash.grid.width()
     }
@@ -366,6 +379,7 @@ impl EntityStore {
     pub fn spatial_hash_get(&self, coord: Coord) -> Option<&SpatialHashCell> {
         self.spatial_hash.grid.get(coord.into())
     }
+{% endif %}
 
     {% for key, component in components %}
         {% if component.storage %}
@@ -417,9 +431,12 @@ impl EntityStore {
                     {% endif %}
                 }
                 pub fn insert_{{ key }}(&mut self, id: EntityId, {{ key }}: {{ component.type }}) -> Option<{{ component.type }}> {
+
+                {% if spatial_hash %}
                     {% if component.tracked_by_spatial_hash %}
                         self.spatial_hash.raw_insert_{{ key }}(&self.raw, id.raw, &{{ key }});
                     {% endif %}
+                {% endif %}
                     self.entity_component_table.insert_{{ key }}(id.raw);
                     self.raw.{{ key }}.insert(id.raw, {{ key }})
                 }
@@ -427,9 +444,11 @@ impl EntityStore {
                     self.raw_remove_{{ key }}(id.raw)
                 }
                 fn raw_remove_{{ key }}(&mut self, id: EntityIdRaw) -> Option<{{ component.type }}> {
+                {% if spatial_hash %}
                     {% if component.tracked_by_spatial_hash %}
                         self.spatial_hash.raw_remove_{{ key }}(&self.raw, id);
                     {% endif %}
+                {% endif %}
                     self.entity_component_table.remove_{{ key }}(id);
                     self.raw.{{ key }}.remove(&id)
                 }
@@ -453,9 +472,11 @@ impl EntityStore {
                     {% endif %}
                 }
                 pub fn insert_{{ key }}(&mut self, id: EntityId) -> bool {
+                {% if spatial_hash %}
                     {% if component.tracked_by_spatial_hash %}
                         self.spatial_hash.raw_insert_{{ key }}(&self.raw, id.raw);
                     {% endif %}
+                {% endif %}
                     self.entity_component_table.insert_{{ key }}(id.raw);
                     self.raw.{{ key }}.insert(id.raw)
                 }
@@ -463,9 +484,11 @@ impl EntityStore {
                     self.raw_remove_{{ key }}(id.raw)
                 }
                 fn raw_remove_{{ key }}(&mut self, id: EntityIdRaw) -> bool {
+                {% if spatial_hash %}
                     {% if component.tracked_by_spatial_hash %}
                         self.spatial_hash.raw_remove_{{ key }}(&self.raw, id);
                     {% endif %}
+                {% endif %}
                     self.entity_component_table.remove_{{ key }}(id);
                     self.raw.{{ key }}.remove(&id)
                 }

@@ -6,4 +6,5 @@ members = [
 
     "tests/general",
     "tests/empty",
+    "tests/no-spatial-hash",
 ]

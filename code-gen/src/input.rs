@@ -1,16 +1,20 @@
+use result::GenResult as Result;
 use std::collections::BTreeMap;
 use toml;
-use result::GenResult as Result;
 
-fn ret_none<T>() -> Option<T> { None }
-fn ret_64() -> usize { 64 }
+fn ret_none<T>() -> Option<T> {
+    None
+}
+fn ret_64() -> usize {
+    64
+}
 
 #[derive(Debug, Deserialize)]
 pub struct Spec {
     #[serde(default = "BTreeMap::new")]
     pub components: BTreeMap<String, Component>,
-    #[serde(default = "BTreeMap::new")]
-    pub spatial_hash: BTreeMap<String, SpatialHashField>,
+    #[serde(default = "ret_none")]
+    pub spatial_hash: Option<BTreeMap<String, SpatialHashField>>,
     #[serde(default = "ret_none")]
     pub spatial_hash_key: Option<String>,
     #[serde(default = "ret_64")]

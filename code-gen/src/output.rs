@@ -61,7 +61,7 @@ pub struct SpatialHash {
 #[derive(Debug, Serialize)]
 pub struct Spec {
     pub components: BTreeMap<String, Component>,
-    pub spatial_hash: SpatialHash,
+    pub spatial_hash: Option<SpatialHash>,
     pub id_type: String,
     pub num_component_types: usize,
 }
