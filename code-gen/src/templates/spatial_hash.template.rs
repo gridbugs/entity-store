@@ -9,10 +9,11 @@ use entity_store_helper::num::One;
 use entity_store_helper::direction::Directions;
 
 use entity_store_helper::grid_2d;
-pub use entity_store_helper::grid_2d::{Grid, Size, Coord, CoordIter};
+pub use entity_store_helper::grid_2d::{Grid, Size, Coord};
+pub use entity_store_helper::grid_2d::coord_system::XThenYIter as CoordIter;
 
-pub type Iter<'a> = grid_2d::Iter<'a, SpatialHashCell>;
-pub type CoordEnumerate<'a> = grid_2d::CoordEnumerate<'a, SpatialHashCell>;
+pub type Iter<'a> = grid_2d::GridIter<'a, SpatialHashCell>;
+pub type CoordEnumerate<'a> = grid_2d::GridEnumerate<'a, SpatialHashCell>;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SpatialHashCell {
@@ -104,7 +105,7 @@ impl SpatialHashTable {
     }
 
     pub fn coords(&self) -> CoordIter {
-        self.grid.coords()
+        self.grid.coord_iter()
     }
 
     pub fn enumerate(&self) -> CoordEnumerate {
